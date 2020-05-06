@@ -2,13 +2,14 @@ pub static CORE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub static RUSTC_VERSION: &str = env!("RUSTC_VERSION");
 
 pub trait Command {
-    fn call(&self, args: &[&str]) -> Result<String, InvocationError>;
+    fn call(&self, args: &[String]) -> Result<String, InvocationError>;
 
     fn help(&self) -> Option<&str> {
         None
     }
 }
 
+#[derive(Debug)]
 pub enum InvocationError {
     InvalidArgumentCount { expected: usize, found: usize },
     Other { msg: String }
