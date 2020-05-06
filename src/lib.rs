@@ -1,5 +1,3 @@
-use irc_rust::message::Message;
-
 pub static CORE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub static RUSTC_VERSION: &str = env!("RUSTC_VERSION");
 
@@ -23,7 +21,7 @@ pub struct CommandDeclaration {
 }
 
 pub trait CommandRegistrar {
-    fn register_command(&mut self, name: &str, function: Box<dyn Function>);
+    fn register_command(&mut self, name: &str, function: Box<dyn Command>);
 }
 
 #[macro_export]
