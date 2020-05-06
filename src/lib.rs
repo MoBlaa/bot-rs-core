@@ -41,6 +41,6 @@ macro_rules! export_command {
             rustc_version: $crate::RUSTC_VERSION,
             core_version: $crate::CORE_VERSION,
             register: $register
-        }
+        };
     }
 }
