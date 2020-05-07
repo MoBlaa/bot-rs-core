@@ -50,6 +50,60 @@ pub trait IrcCommand {
     fn info(&self) -> String;
 }
 
+/// Can be used to generate implementation of [IrcCommand] for traits already
+/// implementing the [Command] trait.
+#[macro_export]
+macro_rules! implement_irc {
+    ($type:ty) => {
+        use irc_rust::message::Message;
+
+        #[doc(hidden)]
+        impl $crate::IrcCommand for $type {
+            fn call_raw(&self, message: &Message) -> Result<Vec<Message>, $crate::InvocationError> {
+                if message.command() != "PRIVMSG" {
+                    trace!("Skipping non-PRIVMSG message!");
+                    return Ok(Vec::with_capacity(0));
+                }
+
+                let tags = message.tags()
+                    .expect("missing tags in message");
+                let sender = &tags["display-name"];
+
+                let params = match message.params() {
+                    None => {
+                        trace!("Skipping PRIVMSG not containing params!");
+                        return Ok(Vec::with_capacity(0))
+                    },
+                    Some(params) => params
+                };
+                let channel = params.iter().next().expect("missing channel param");
+                let trailing = params.trailing;
+                if trailing.is_none() {
+                    trace!("Skipping PRIVMSG not containing a trailing message!");
+                    return Ok(Vec::with_capacity(0));
+                }
+                let trailing = trailing.unwrap().trim();
+                let params = $crate::IrcCommand::extract_params(self, trailing);
+
+                self.call(&params)
+                    .map(|result| {
+                        let message = format!("@{}: {}", sender, result);
+                        vec![Message::builder()
+                            .command("PRIVMSG")
+                            .param(channel)
+                            .trailing(message.as_str())
+                            .build()
+                        ]
+                    })
+            }
+
+            fn info(&self) -> String {
+                Command::info(self)
+            }
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum InvocationError {
     InvalidArgumentCount { expected: usize, found: usize },
