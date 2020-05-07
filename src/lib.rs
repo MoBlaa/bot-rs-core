@@ -1,12 +1,16 @@
 #[macro_use]
 extern crate log;
 
-use std::rc::Rc;
+use std::{fs, io};
 use std::collections::HashMap;
-use std::{io, fs};
 use std::ffi::OsStr;
 use std::path::PathBuf;
+use std::rc::Rc;
+
+use irc_rust::message::Message;
 use libloading::Library;
+use std::fmt::{Display, Formatter};
+use core::fmt;
 
 pub static CORE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub static RUSTC_VERSION: &str = env!("RUSTC_VERSION");
@@ -14,7 +18,34 @@ pub static RUSTC_VERSION: &str = env!("RUSTC_VERSION");
 pub trait Command {
     /// Calls the command. Like Argv the args contain the name
     /// of the command as first element.
-    fn call(&self, args: &[String]) -> Result<String, InvocationError>;
+    fn call(&self, args: &[&str]) -> Result<String, InvocationError>;
+
+    fn info(&self) -> String;
+}
+
+pub trait IrcCommand {
+    /// Extracts the parameters from the invocation string.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let params = extract_params("!random 0 20");
+    /// assert_eq!(params, vec!["0", "20"]);
+    /// ```
+    fn extract_params<'a>(&self, invocation: &'a str) -> Vec<&'a str> {
+        let mut result = Vec::new();
+        if let Some(index) = invocation.chars().position(|c| c == ' ') {
+            let name = &invocation[1..index];
+            result.push(name);
+            result.extend(invocation[index + 1..].split(' ').collect::<Vec<_>>());
+        } else {
+            let name = &invocation[1..];
+            result.push(name);
+        }
+        result
+    }
+
+    fn call_raw(&self, message: &Message) -> Result<Vec<Message>, InvocationError>;
 
     fn info(&self) -> String;
 }
@@ -22,13 +53,30 @@ pub trait Command {
 #[derive(Debug)]
 pub enum InvocationError {
     InvalidArgumentCount { expected: usize, found: usize },
-    Other { msg: String }
+    Other { msg: String },
 }
 
-impl<S: ToString> From<S> for InvocationError {
-    fn from(other: S) -> Self {
+impl From<String> for InvocationError {
+    fn from(other: String) -> Self {
+        InvocationError::Other {
+            msg: other
+        }
+    }
+}
+
+impl From<&str> for InvocationError {
+    fn from(other: &str) -> Self {
         InvocationError::Other {
             msg: other.to_string()
+        }
+    }
+}
+
+impl Display for InvocationError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            InvocationError::Other { msg } => writeln!(f, "InvocationError: {}", msg),
+            InvocationError::InvalidArgumentCount { expected, found } => writeln!(f, "Invalid argument count: {} (expected {})", found, expected)
         }
     }
 }
@@ -40,7 +88,8 @@ pub struct CommandDeclaration {
 }
 
 pub trait CommandRegistrar {
-    fn register_command(&mut self, name: &[&str], function: Rc<dyn Command>);
+    fn register_command(&mut self, names: &[&str], command: Rc<dyn Command>);
+    fn register_irc_command(&mut self, names: &[&str], command: Rc<dyn IrcCommand>);
 }
 
 #[macro_export]
@@ -62,7 +111,7 @@ struct CommandProxy {
 }
 
 impl Command for CommandProxy {
-    fn call(&self, args: &[String]) -> Result<String, InvocationError> {
+    fn call(&self, args: &[&str]) -> Result<String, InvocationError> {
         self.command.call(args)
     }
 
@@ -71,10 +120,26 @@ impl Command for CommandProxy {
     }
 }
 
+struct IrcCommandProxy {
+    command: Rc<dyn IrcCommand>,
+    _lib: Rc<Library>,
+}
+
+impl IrcCommand for IrcCommandProxy {
+    fn call_raw(&self, message: &Message) -> Result<Vec<Message>, InvocationError> {
+        self.command.call_raw(message)
+    }
+
+    fn info(&self) -> String {
+        unimplemented!()
+    }
+}
+
 // Contains all loaded Commands
 #[derive(Default)]
 pub struct Commands {
     commands: HashMap<String, CommandProxy>,
+    irc_commands: HashMap<String, IrcCommandProxy>,
     libraries: Vec<Rc<Library>>,
 }
 
@@ -82,6 +147,7 @@ impl Commands {
     pub fn new() -> Commands {
         Commands {
             commands: HashMap::new(),
+            irc_commands: HashMap::new(),
             libraries: Vec::new(),
         }
     }
@@ -140,6 +206,7 @@ impl Commands {
 
         // add all loaded plugins to the functions map
         self.commands.extend(registrar.commands);
+        self.irc_commands.extend(registrar.irc_commands);
         // and make sure Commands keeps a reference to the library
         self.libraries.push(library);
 
@@ -148,9 +215,9 @@ impl Commands {
 }
 
 impl Command for Commands {
-    fn call(&self, arguments: &[String]) -> Result<String, InvocationError> {
+    fn call(&self, arguments: &[&str]) -> Result<String, InvocationError> {
         self.commands
-            .get(&arguments[0])
+            .get(arguments[0])
             .ok_or_else(|| format!("\"{}\" not found", &arguments[0]))?
             .call(arguments)
     }
@@ -160,8 +227,24 @@ impl Command for Commands {
     }
 }
 
+impl IrcCommand for Commands {
+    fn call_raw(&self, message: &Message) -> Result<Vec<Message>, InvocationError> {
+        let mut result = Vec::new();
+        for (_, cmd) in self.irc_commands.iter() {
+            let mut res = cmd.call_raw(message)?;
+            result.append(&mut res);
+        }
+        Ok(result)
+    }
+
+    fn info(&self) -> String {
+        format!("Bot-RS Core {}", CORE_VERSION)
+    }
+}
+
 struct SimpleRegistrar {
     commands: HashMap<String, CommandProxy>,
+    irc_commands: HashMap<String, IrcCommandProxy>,
     lib: Rc<Library>,
 }
 
@@ -169,6 +252,7 @@ impl SimpleRegistrar {
     fn new(lib: Rc<Library>) -> SimpleRegistrar {
         SimpleRegistrar {
             lib,
+            irc_commands: HashMap::default(),
             commands: HashMap::default(),
         }
     }
@@ -183,6 +267,18 @@ impl CommandRegistrar for SimpleRegistrar {
             };
             if let Some(old) = self.commands.insert(name.to_string(), proxy) {
                 warn!("multiple commands with name '{}'; using '{}' (overwritten '{}')", name, command.info(), old.info());
+            }
+        }
+    }
+
+    fn register_irc_command(&mut self, names: &[&str], command: Rc<dyn IrcCommand>) {
+        for name in names {
+            let proxy = IrcCommandProxy {
+                command: Rc::clone(&command),
+                _lib: Rc::clone(&self.lib),
+            };
+            if let Some(old) = self.irc_commands.insert(name.to_string(), proxy) {
+                warn!("multiple irc commands with name '{}'; using '{}' (overwritten '{}')", name, command.info(), old.info());
             }
         }
     }
