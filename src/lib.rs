@@ -7,10 +7,6 @@ pub trait Command {
     /// Calls the command. Like Argv the args contain the name
     /// of the command as first element.
     fn call(&self, args: &[String]) -> Result<String, InvocationError>;
-
-    fn help(&self) -> Option<&str> {
-        None
-    }
 }
 
 #[derive(Debug)]
