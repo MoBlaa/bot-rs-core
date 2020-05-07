@@ -18,7 +18,7 @@ pub static RUSTC_VERSION: &str = env!("RUSTC_VERSION");
 pub trait Command {
     /// Calls the command. Like Argv the args contain the name
     /// of the command as first element.
-    fn call(&self, args: &[&str]) -> Result<String, InvocationError>;
+    fn call(&self, args: &[&str]) -> Result<Vec<String>, InvocationError>;
 
     fn info(&self) -> String;
 }
@@ -85,15 +85,20 @@ macro_rules! implement_irc {
                 let trailing = trailing.unwrap().trim();
                 let params = $crate::IrcCommand::extract_params(self, trailing);
 
+// TODO: filter for names before invoking
                 self.call(&params)
-                    .map(|result| {
-                        let message = format!("@{}: {}", sender, result);
-                        vec![Message::builder()
+                    .map(|result: Vec<String>| {
+                        let mut messages = Vec::with_capacity(result.len());
+                        for result in result {
+                            let message = format!("@{}: {}", sender, result);
+                            messages.push(Message::builder()
                             .command("PRIVMSG")
                             .param(channel)
                             .trailing(message.as_str())
                             .build()
-                        ]
+                            );
+                        }
+                        messages
                     })
             }
 
@@ -165,7 +170,7 @@ struct CommandProxy {
 }
 
 impl Command for CommandProxy {
-    fn call(&self, args: &[&str]) -> Result<String, InvocationError> {
+    fn call(&self, args: &[&str]) -> Result<Vec<String>, InvocationError> {
         self.command.call(args)
     }
 
@@ -185,7 +190,7 @@ impl IrcCommand for IrcCommandProxy {
     }
 
     fn info(&self) -> String {
-        unimplemented!()
+        self.command.info()
     }
 }
 
@@ -269,7 +274,7 @@ impl Commands {
 }
 
 impl Command for Commands {
-    fn call(&self, arguments: &[&str]) -> Result<String, InvocationError> {
+    fn call(&self, arguments: &[&str]) -> Result<Vec<String>, InvocationError> {
         self.commands
             .get(arguments[0])
             .ok_or_else(|| format!("\"{}\" not found", &arguments[0]))?
