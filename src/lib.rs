@@ -1,7 +1,11 @@
+use std::rc::Rc;
+
 pub static CORE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub static RUSTC_VERSION: &str = env!("RUSTC_VERSION");
 
 pub trait Command {
+    /// Calls the command. Like Argv the args contain the name
+    /// of the command as first element.
     fn call(&self, args: &[String]) -> Result<String, InvocationError>;
 
     fn help(&self) -> Option<&str> {
@@ -30,7 +34,7 @@ pub struct CommandDeclaration {
 }
 
 pub trait CommandRegistrar {
-    fn register_command(&mut self, name: &str, function: Box<dyn Command>);
+    fn register_command(&mut self, name: &[&str], function: Rc<dyn Command>);
 }
 
 #[macro_export]
