@@ -1,16 +1,16 @@
 #[macro_use]
 extern crate log;
 
+use core::fmt;
 use std::{fs, io};
 use std::collections::HashMap;
 use std::ffi::OsStr;
+use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use std::rc::Rc;
 
 use irc_rust::message::Message;
 use libloading::Library;
-use std::fmt::{Display, Formatter};
-use core::fmt;
 
 pub static CORE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub static RUSTC_VERSION: &str = env!("RUSTC_VERSION");
@@ -89,7 +89,7 @@ pub struct CommandDeclaration {
 
 pub trait CommandRegistrar {
     fn register_command(&mut self, names: &[&str], command: Rc<dyn Command>);
-    fn register_irc_command(&mut self, names: &[&str], command: Rc<dyn IrcCommand>);
+    fn register_irc_command(&mut self, command: Rc<dyn IrcCommand>);
 }
 
 #[macro_export]
@@ -139,7 +139,7 @@ impl IrcCommand for IrcCommandProxy {
 #[derive(Default)]
 pub struct Commands {
     commands: HashMap<String, CommandProxy>,
-    irc_commands: HashMap<String, IrcCommandProxy>,
+    irc_commands: Vec<IrcCommandProxy>,
     libraries: Vec<Rc<Library>>,
 }
 
@@ -147,7 +147,7 @@ impl Commands {
     pub fn new() -> Commands {
         Commands {
             commands: HashMap::new(),
-            irc_commands: HashMap::new(),
+            irc_commands: Vec::new(),
             libraries: Vec::new(),
         }
     }
@@ -230,7 +230,7 @@ impl Command for Commands {
 impl IrcCommand for Commands {
     fn call_raw(&self, message: &Message) -> Result<Vec<Message>, InvocationError> {
         let mut result = Vec::new();
-        for (_, cmd) in self.irc_commands.iter() {
+        for cmd in self.irc_commands.iter() {
             let mut res = cmd.call_raw(message)?;
             result.append(&mut res);
         }
@@ -244,7 +244,7 @@ impl IrcCommand for Commands {
 
 struct SimpleRegistrar {
     commands: HashMap<String, CommandProxy>,
-    irc_commands: HashMap<String, IrcCommandProxy>,
+    irc_commands: Vec<IrcCommandProxy>,
     lib: Rc<Library>,
 }
 
@@ -252,7 +252,7 @@ impl SimpleRegistrar {
     fn new(lib: Rc<Library>) -> SimpleRegistrar {
         SimpleRegistrar {
             lib,
-            irc_commands: HashMap::default(),
+            irc_commands: Vec::default(),
             commands: HashMap::default(),
         }
     }
@@ -271,15 +271,11 @@ impl CommandRegistrar for SimpleRegistrar {
         }
     }
 
-    fn register_irc_command(&mut self, names: &[&str], command: Rc<dyn IrcCommand>) {
-        for name in names {
-            let proxy = IrcCommandProxy {
-                command: Rc::clone(&command),
-                _lib: Rc::clone(&self.lib),
-            };
-            if let Some(old) = self.irc_commands.insert(name.to_string(), proxy) {
-                warn!("multiple irc commands with name '{}'; using '{}' (overwritten '{}')", name, command.info(), old.info());
-            }
-        }
+    fn register_irc_command(&mut self, command: Rc<dyn IrcCommand>) {
+        let proxy = IrcCommandProxy {
+            command: Rc::clone(&command),
+            _lib: Rc::clone(&self.lib),
+        };
+        self.irc_commands.push(proxy);
     }
 }
