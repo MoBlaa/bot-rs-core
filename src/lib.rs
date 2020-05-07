@@ -15,6 +15,8 @@ pub trait Command {
     /// Calls the command. Like Argv the args contain the name
     /// of the command as first element.
     fn call(&self, args: &[String]) -> Result<String, InvocationError>;
+
+    fn info(&self) -> String;
 }
 
 #[derive(Debug)]
@@ -63,6 +65,10 @@ impl Command for CommandProxy {
     fn call(&self, args: &[String]) -> Result<String, InvocationError> {
         self.command.call(args)
     }
+
+    fn info(&self) -> String {
+        self.command.info()
+    }
 }
 
 // Contains all loaded Commands
@@ -88,13 +94,12 @@ impl Commands {
             ));
         }
 
-        trace!("reading plugins dir {}", libraries_root.to_str().unwrap());
         for entry in fs::read_dir(libraries_root)? {
             let entry = entry?.path();
             if entry.is_file() {
                 if let Some(extension) = entry.extension() {
                     if extension == "so" {
-                        debug!("found file {}", entry.to_str().unwrap());
+                        debug!("Loading plugin-file {}", entry.to_str().unwrap());
                         unsafe { self.load(entry)? };
                     }
                 }
@@ -135,7 +140,7 @@ impl Commands {
 
         // add all loaded plugins to the functions map
         self.commands.extend(registrar.commands);
-        // and make sure ExternalFunctions keeps a reference to the library
+        // and make sure Commands keeps a reference to the library
         self.libraries.push(library);
 
         Ok(())
@@ -148,6 +153,10 @@ impl Command for Commands {
             .get(&arguments[0])
             .ok_or_else(|| format!("\"{}\" not found", &arguments[0]))?
             .call(arguments)
+    }
+
+    fn info(&self) -> String {
+        format!("Bot-RS Core {}", CORE_VERSION)
     }
 }
 
@@ -172,7 +181,9 @@ impl CommandRegistrar for SimpleRegistrar {
                 command: Rc::clone(&command),
                 _lib: Rc::clone(&self.lib),
             };
-            self.commands.insert(name.to_string(), proxy);
+            if let Some(old) = self.commands.insert(name.to_string(), proxy) {
+                warn!("multiple commands with name '{}'; using '{}' (overwritten '{}')", name, command.info(), old.info());
+            }
         }
     }
 }
