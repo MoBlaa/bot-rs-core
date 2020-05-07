@@ -1,4 +1,12 @@
+#[macro_use]
+extern crate log;
+
 use std::rc::Rc;
+use std::collections::HashMap;
+use std::{io, fs};
+use std::ffi::OsStr;
+use std::path::PathBuf;
+use libloading::Library;
 
 pub static CORE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub static RUSTC_VERSION: &str = env!("RUSTC_VERSION");
@@ -43,5 +51,128 @@ macro_rules! export_command {
             core_version: $crate::CORE_VERSION,
             register: $register
         };
+    }
+}
+
+struct CommandProxy {
+    command: Rc<dyn Command>,
+    _lib: Rc<Library>,
+}
+
+impl Command for CommandProxy {
+    fn call(&self, args: &[String]) -> Result<String, InvocationError> {
+        self.command.call(args)
+    }
+}
+
+// Contains all loaded Commands
+#[derive(Default)]
+pub struct Commands {
+    commands: HashMap<String, CommandProxy>,
+    libraries: Vec<Rc<Library>>,
+}
+
+impl Commands {
+    pub fn new() -> Commands {
+        Commands {
+            commands: HashMap::new(),
+            libraries: Vec::new(),
+        }
+    }
+
+    pub fn load_dir(&mut self, libraries_root: PathBuf) -> io::Result<()> {
+        if !libraries_root.is_dir() {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                "libraries root is not a directory",
+            ));
+        }
+
+        trace!("reading plugins dir {}", libraries_root.to_str().unwrap());
+        for entry in fs::read_dir(libraries_root)? {
+            let entry = entry?.path();
+            if entry.is_file() {
+                if let Some(extension) = entry.extension() {
+                    if extension == "so" {
+                        debug!("found file {}", entry.to_str().unwrap());
+                        unsafe { self.load(entry)? };
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// # Safety
+    ///
+    /// This function should only be called with a valid path to a library file.
+    unsafe fn load<P: AsRef<OsStr>>(&mut self, library_path: P) -> io::Result<()> {
+        // load the library into memory
+        let library = Rc::new(Library::new(library_path)
+            .expect("failed to create new library")
+        );
+
+        // get a pointer to the plugin_declaration symbol.
+        let decl = library
+            .get::<*mut CommandDeclaration>(b"command_declaration\0")
+            .expect("failed to get command_declaration")
+            .read();
+
+        // version checks to prevent accidental ABI incompatibilities
+        if decl.rustc_version != RUSTC_VERSION
+            || decl.core_version != CORE_VERSION
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                "Version mismatch",
+            ));
+        }
+        trace!("RUSTC and CORE versions match!");
+
+        let mut registrar = SimpleRegistrar::new(Rc::clone(&library));
+
+        (decl.register)(&mut registrar);
+
+        // add all loaded plugins to the functions map
+        self.commands.extend(registrar.commands);
+        // and make sure ExternalFunctions keeps a reference to the library
+        self.libraries.push(library);
+
+        Ok(())
+    }
+}
+
+impl Command for Commands {
+    fn call(&self, arguments: &[String]) -> Result<String, InvocationError> {
+        self.commands
+            .get(&arguments[0])
+            .ok_or_else(|| format!("\"{}\" not found", &arguments[0]))?
+            .call(arguments)
+    }
+}
+
+struct SimpleRegistrar {
+    commands: HashMap<String, CommandProxy>,
+    lib: Rc<Library>,
+}
+
+impl SimpleRegistrar {
+    fn new(lib: Rc<Library>) -> SimpleRegistrar {
+        SimpleRegistrar {
+            lib,
+            commands: HashMap::default(),
+        }
+    }
+}
+
+impl CommandRegistrar for SimpleRegistrar {
+    fn register_command(&mut self, names: &[&str], command: Rc<dyn Command>) {
+        for name in names {
+            let proxy = CommandProxy {
+                command: Rc::clone(&command),
+                _lib: Rc::clone(&self.lib),
+            };
+            self.commands.insert(name.to_string(), proxy);
+        }
     }
 }
