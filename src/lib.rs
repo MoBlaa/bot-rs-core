@@ -12,8 +12,11 @@ use std::rc::Rc;
 use irc_rust::message::Message;
 use libloading::Library;
 
-pub static CORE_VERSION: &str = env!("CARGO_PKG_VERSION");
-pub static RUSTC_VERSION: &str = env!("RUSTC_VERSION");
+pub const ENV_TWITCH_CLIENT_ID: &str = "BRS_TWITCH_CLIENT_ID";
+pub const ENV_TWITCH_CLIENT_SECRET: &str = "BRS_TWITCH_CLIENT_SECRET";
+
+pub const CORE_VERSION: &str = env!("CARGO_PKG_VERSION");
+pub const RUSTC_VERSION: &str = env!("RUSTC_VERSION");
 
 pub trait Command {
     /// Calls the command. Like Argv the args contain the name
