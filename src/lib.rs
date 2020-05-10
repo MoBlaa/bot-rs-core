@@ -31,7 +31,7 @@ pub trait IrcCommand {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```ignore
     /// let params = extract_params("!random 0 20");
     /// assert_eq!(params, vec!["0", "20"]);
     /// ```
