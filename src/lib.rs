@@ -2,6 +2,7 @@
 extern crate log;
 
 pub mod twitch_api;
+mod utils;
 
 use core::fmt;
 use std::{fs, io};
@@ -13,9 +14,6 @@ use std::rc::Rc;
 
 use irc_rust::message::Message;
 use libloading::Library;
-
-pub const ENV_TWITCH_CLIENT_ID: &str = "BRS_TWITCH_CLIENT_ID";
-pub const ENV_TWITCH_CLIENT_SECRET: &str = "BRS_TWITCH_CLIENT_SECRET";
 
 pub const CORE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const RUSTC_VERSION: &str = env!("RUSTC_VERSION");
