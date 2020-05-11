@@ -17,6 +17,7 @@ pub const ENV_TWITCH_SCOPES: &str = "BRS_TWITCH_SCOPES";
 static REDIRECT_URI: &str = "http://localhost:4334/";
 static DEFAULT_SCOPES: [&str;5] = ["channel:moderate","chat:edit","chat:read","user:edit:follows","user_follows_edit"];
 
+#[derive(Clone)]
 pub enum UserInfo {
     Twitch {
         login: String,
@@ -32,6 +33,7 @@ impl UserInfo {
     }
 }
 
+#[derive(Clone)]
 pub struct Authentication {
     pub auth: AuthRequest,
     pub token: Option<String>,
@@ -48,6 +50,7 @@ impl From<AuthRequest> for Authentication {
     }
 }
 
+#[derive(Clone)]
 pub enum AuthRequest {
     /// [](https://dev.twitch.tv/docs/authentication/getting-tokens-oauth#oauth-implicit-code-flow) requiring GET.
     ImplicitCode {
