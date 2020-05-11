@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate log;
 
+pub mod twitch_api;
+
 use core::fmt;
 use std::{fs, io};
 use std::collections::HashMap;

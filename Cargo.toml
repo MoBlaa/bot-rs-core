@@ -10,6 +10,7 @@ edition = "2018"
 irc-rust = "0.1.6"
 libloading = "0.6.2"
 log = "0.4.8"
+url = "2.1.1"
 
 [build-dependencies]
 rustc_version = "0.2.3"
