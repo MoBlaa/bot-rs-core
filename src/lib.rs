@@ -28,6 +28,7 @@ pub trait Command {
 
 pub trait IrcCommand {
     /// Extracts the parameters from the invocation string.
+    /// Asserts the first character of the invocation is `!`.
     ///
     /// # Example
     ///
@@ -36,6 +37,9 @@ pub trait IrcCommand {
     /// assert_eq!(params, vec!["0", "20"]);
     /// ```
     fn extract_params<'a>(&self, invocation: &'a str) -> Vec<&'a str> {
+        if !invocation.starts_with("!") {
+            panic!("invoked without prefixing with `!`");
+        }
         let mut result = Vec::new();
         if let Some(index) = invocation.chars().position(|c| c == ' ') {
             let name = &invocation[1..index];
@@ -83,6 +87,9 @@ macro_rules! implement_irc {
                     return Ok(Vec::with_capacity(0));
                 }
                 let trailing = trailing.unwrap().trim();
+                if !trailing.starts_with('!') {
+                    return Ok(Vec::with_capacity(0));
+                }
                 let params = $crate::IrcCommand::extract_params(self, trailing);
 
 // TODO: filter for names before invoking

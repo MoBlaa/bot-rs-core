@@ -106,14 +106,14 @@ impl AuthRequest {
                 redirect_uri: Url::from_str(REDIRECT_URI).expect("invalid redirect_uri"),
                 scope,
                 state: rand_alphanumeric(30),
-                force_verify: true
+                force_verify: false
             },
             "code" => AuthRequest::AuthorizationCode {
                 client_id,
                 redirect_uri: Url::from_str(REDIRECT_URI).expect("invalid redirect_uri"),
                 scope,
                 state: rand_alphanumeric(30),
-                force_verify: true
+                force_verify: false
             },
             "client_credentials" => {
                 let client_secret = std::env::var(ENV_TWITCH_CLIENT_SECRET)
