@@ -15,7 +15,7 @@ pub const ENV_TWITCH_CLIENT_SECRET: &str = "BRS_TWITCH_CLIENT_SECRET";
 pub const ENV_TWITCH_SCOPES: &str = "BRS_TWITCH_SCOPES";
 
 static REDIRECT_URI: &str = "http://localhost:4334/";
-static DEFAULT_SCOPES: [&str;5] = ["channel:moderate","chat:edit","chat:read","user:edit:follows","user_follows_edit"];
+static DEFAULT_SCOPES: [&str;6] = ["channel:moderate","chat:edit","chat:read","user:edit:follows","user_follows_edit", "user:edit"];
 
 #[derive(Clone)]
 pub enum UserInfo {
