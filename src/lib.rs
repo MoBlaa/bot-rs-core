@@ -1,5 +1,11 @@
+#![feature(proc_macro_hygiene, decl_macro)]
+
 #[macro_use]
 extern crate log;
+#[macro_use]
+extern crate serde;
+#[macro_use]
+extern crate rocket;
 
 pub mod twitch_api;
 mod utils;
@@ -37,7 +43,7 @@ pub trait IrcCommand {
     /// assert_eq!(params, vec!["0", "20"]);
     /// ```
     fn extract_params<'a>(&self, invocation: &'a str) -> Vec<&'a str> {
-        if !invocation.starts_with("!") {
+        if !invocation.starts_with('!') {
             panic!("invoked without prefixing with `!`");
         }
         let mut result = Vec::new();

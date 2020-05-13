@@ -3,6 +3,11 @@ use core::fmt;
 use url::Url;
 use std::str::FromStr;
 use crate::utils::rand_alphanumeric;
+use std::sync::{Mutex, Arc, Condvar};
+use std::thread;
+use rocket::response::content;
+use rocket::State;
+use rocket::config::Environment;
 
 /// Configuring which authentication method should be used.
 /// "token" = OAuth Implicit Code Flow,
@@ -14,48 +19,163 @@ pub const ENV_TWITCH_CLIENT_SECRET: &str = "BRS_TWITCH_CLIENT_SECRET";
 /// Optional Comma separated List of scopes defined at [](https://dev.twitch.tv/docs/authentication/#scopes). Defaults to: `["channel:moderate","chat:edit","chat:read","user:edit:follows","user_follows_edit"]`
 pub const ENV_TWITCH_SCOPES: &str = "BRS_TWITCH_SCOPES";
 
+const TWITCH_OAUTH_HANDLER_SCRIPT: &str = include_str!("twitch_oauth.html");
+
 static REDIRECT_URI: &str = "http://localhost:4334/";
 static DEFAULT_SCOPES: [&str;6] = ["channel:moderate","chat:edit","chat:read","user:edit:follows","user_follows_edit", "user:edit"];
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
 pub enum UserInfo {
     Twitch {
         login: String,
         user_id: String
-    }
+    },
+    None
 }
 
 impl UserInfo {
     pub fn name(&self) -> String {
         match self {
-            UserInfo::Twitch {login, ..} => login.clone()
+            UserInfo::Twitch {login, ..} => login.clone(),
+            UserInfo::None => String::new()
         }
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+pub enum Credentials {
+    OAuthToken {
+        token: String
+    },
+    None
+}
+
+impl Credentials {
+    pub fn oauth(token: String) -> Credentials {
+        Credentials::OAuthToken {token}
+    }
+
+    pub fn to_header(&self) -> String {
+        match self {
+            Credentials::OAuthToken {token} => format!("OAuth {}", token),
+            Credentials::None => panic!("tried to convert Credentials::NONE to header"),
+        }
+    }
+}
+
+impl Display for Credentials {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Credentials::OAuthToken {token} => write!(f, "oauth:{}", token),
+            Credentials::None => write!(f, "NONE")
+        }
+    }
+}
+
+#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
 pub struct Authentication {
     pub auth: AuthRequest,
-    pub token: Option<String>,
-    pub user_info: Option<UserInfo>
+    pub credentials: Credentials,
+    pub user_info: UserInfo
+}
+
+type AuthMutex = Arc<(Mutex<Authentication>, Condvar)>;
+
+/// Endpoint serving the html to read the OAuth fragment generated.
+#[get("/")]
+fn index() -> content::Html<&'static str> {
+    content::Html(TWITCH_OAUTH_HANDLER_SCRIPT)
+}
+
+/// Endpoint to actually register.
+#[post("/auth?<access_token>&<state>")]
+fn auth_get(auth: State<AuthMutex>, access_token: String, state: Option<String>) -> String {
+    let (lock, cvar) = auth.as_ref();
+    let mut token = lock.lock().unwrap();
+
+    let nonce = match token.auth {
+        AuthRequest::ImplicitCode { ref state, .. } => state,
+        AuthRequest::AuthorizationCode { ref state, .. } => state,
+        _ => ""
+    };
+    let state = state.expect("missing state in OAuth redirect");
+    if !nonce.is_empty() && state != nonce {
+        panic!("state doesn't match. Expected={}, Actual={}", nonce, state);
+    }
+
+    token.credentials = Credentials::OAuthToken { token: access_token };
+    cvar.notify_all();
+
+    "Successfully obtained access token! You can close this window now..".to_string()
+}
+
+impl Authentication {
+    pub fn twitch() -> Authentication {
+        let req = AuthRequest::default();
+        info!("For authentication please grant Nemabot access to the Bots Twitch account at: '{}'", req.to_string());
+        let auth_lock: AuthMutex = Arc::new((Mutex::new(Authentication::from(req)), Condvar::new()));
+
+        let r_auth_lock = Arc::clone(&auth_lock);
+        thread::spawn(move || {
+            let cfg = rocket::Config::build(Environment::active().expect("missing rocket environment"))
+                .port(4334)
+                .finalize()
+                .expect("failed to build rocket config");
+            rocket::custom(cfg)
+                .manage(Arc::clone(&r_auth_lock))
+                .mount("/", routes![index, auth_get])
+                .launch();
+        });
+
+        let (lock, cvar) = &*auth_lock;
+        let mut auth = lock.lock().unwrap();
+        while let Credentials::None = auth.credentials {
+            auth = cvar.wait(auth).unwrap();
+        }
+
+        auth.user_info = auth.validate_token();
+
+        auth.clone()
+    }
+
+    fn validate_token(&self) -> UserInfo {
+        let client = reqwest::blocking::Client::new();
+        let response: reqwest::blocking::Response = client.get("https://id.twitch.tv/oauth2/validate")
+            .header("Authorization", self.credentials.to_header())
+            .send()
+            .expect("validation request failed");
+        if !response.status().is_success() {
+            panic!("validation request failed: {}", response.status());
+        }
+        let body: String = response.text()
+            .expect("invalid response body");
+        let body: TwitchValidation = serde_json::from_str(&body).unwrap();
+        if &body.client_id != self.auth.client_id() {
+            panic!("Client-ID doesn't match the one used for auth. Expected: {}, Actual: {}", self.auth.client_id(), body.client_id);
+        }
+        UserInfo::Twitch {
+            login: body.login,
+            user_id: body.user_id,
+        }
+    }
 }
 
 impl From<AuthRequest> for Authentication {
     fn from(auth: AuthRequest) -> Self {
         Authentication {
             auth,
-            token: None,
-            user_info: None
+            credentials: Credentials::None,
+            user_info: UserInfo::None
         }
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
 pub enum AuthRequest {
     /// [](https://dev.twitch.tv/docs/authentication/getting-tokens-oauth#oauth-implicit-code-flow) requiring GET.
     ImplicitCode {
         client_id: String,
-        redirect_uri: Url,
+        redirect_uri: String,
         scope: Vec<String>,
         state: String,
         force_verify: bool
@@ -63,7 +183,7 @@ pub enum AuthRequest {
     /// [](https://dev.twitch.tv/docs/authentication/getting-tokens-oauth#oauth-authorization-code-flow) requiring GET.
     AuthorizationCode {
         client_id: String,
-        redirect_uri: Url,
+        redirect_uri: String,
         scope: Vec<String>,
         state: String,
         force_verify: bool,
@@ -80,6 +200,15 @@ impl Default for AuthRequest {
     fn default() -> Self {
         Self::new()
     }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct TwitchValidation {
+    client_id: String,
+    login: String,
+    user_id: String,
+    scopes: Vec<String>,
+    expires_in: usize,
 }
 
 impl AuthRequest {
@@ -103,14 +232,14 @@ impl AuthRequest {
         match auth_type.as_str() {
             "token" => AuthRequest::ImplicitCode {
                 client_id,
-                redirect_uri: Url::from_str(REDIRECT_URI).expect("invalid redirect_uri"),
+                redirect_uri: REDIRECT_URI.to_string(),
                 scope,
                 state: rand_alphanumeric(30),
                 force_verify: false
             },
             "code" => AuthRequest::AuthorizationCode {
                 client_id,
-                redirect_uri: Url::from_str(REDIRECT_URI).expect("invalid redirect_uri"),
+                redirect_uri: REDIRECT_URI.to_string(),
                 scope,
                 state: rand_alphanumeric(30),
                 force_verify: false
@@ -192,7 +321,7 @@ mod tests {
     fn test_format() {
         let auth = AuthRequest::ImplicitCode {
             client_id: "someclientid".to_string(),
-            redirect_uri: Url::from_str("https://localhost:4334/").unwrap(),
+            redirect_uri: "https://localhost:4334/".to_string(),
             scope: vec!["scope1".to_string(), "scope2".to_string()],
             force_verify: true,
             state: "abcdefghijklmnopqrstuvwxyz123456789".to_string()
