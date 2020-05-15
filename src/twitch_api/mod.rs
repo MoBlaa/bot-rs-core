@@ -19,6 +19,7 @@ use std::ops::Add;
 pub const ENV_TWITCH_AUTH: &str = "BRS_TWITCH_AUTH";
 pub const TWITCH_CLIENT_ID: &str = env!("BRS_TWITCH_CLIENT_ID");
 pub const TWITCH_CLIENT_SECRET: Option<&str> = option_env!("BRS_TWITCH_CLIENT_SECRET");
+pub const ENV_TWITCH_TOKEN: &str = "BRS_TWITCH_TOKEN";
 
 /// Optional Comma separated List of scopes defined at [](https://dev.twitch.tv/docs/authentication/#scopes). Defaults to: `["channel:moderate","chat:edit","chat:read","user:edit:follows","user_follows_edit"]`
 pub const ENV_TWITCH_SCOPES: &str = "BRS_TWITCH_SCOPES";

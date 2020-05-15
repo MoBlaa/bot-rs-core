@@ -45,6 +45,17 @@ impl Display for Credentials {
     }
 }
 
+impl<S> From<S> for Credentials where S: AsRef<str> {
+    fn from(t: S) -> Self {
+        let s_t = t.as_ref();
+        if s_t.starts_with("oauth:") {
+            Credentials::OAuthToken { token: s_t[6..].to_string() }
+        } else {
+            panic!("token has no supported format: {}", s_t)
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum ValidationError {
     Invalid,
@@ -54,4 +65,15 @@ pub enum ValidationError {
 pub trait Authenticator {
     fn authenticate(&self) -> Credentials;
     fn validate(&self, cred: &Credentials) -> Result<UserInfo, ValidationError>;
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::auth::Credentials;
+
+    #[test]
+    fn test_str() {
+        assert_eq!(Credentials::OAuthToken { token: "thisisatoken".to_string() }.to_string(), "oauth:thisisatoken");
+        assert_eq!(Credentials::from("oauth:thisisatoken"), Credentials::OAuthToken {token: "thisisatoken".to_string()});
+    }
 }
