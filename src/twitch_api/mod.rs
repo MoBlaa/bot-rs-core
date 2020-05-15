@@ -8,6 +8,7 @@ use std::thread;
 use rocket::response::content;
 use rocket::State;
 use rocket::config::Environment;
+use crate::auth::{Authenticator, Authentication, Credentials, UserInfo};
 
 /// Configuring which authentication method should be used.
 /// "token" = OAuth Implicit Code Flow,
@@ -23,60 +24,6 @@ const TWITCH_OAUTH_HANDLER_SCRIPT: &str = include_str!("twitch_oauth.html");
 
 static REDIRECT_URI: &str = "http://localhost:4334/";
 static DEFAULT_SCOPES: [&str;6] = ["channel:moderate","chat:edit","chat:read","user:edit:follows","user_follows_edit", "user:edit"];
-
-#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
-pub enum UserInfo {
-    Twitch {
-        login: String,
-        user_id: String
-    },
-    None
-}
-
-impl UserInfo {
-    pub fn name(&self) -> String {
-        match self {
-            UserInfo::Twitch {login, ..} => login.clone(),
-            UserInfo::None => String::new()
-        }
-    }
-}
-
-#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
-pub enum Credentials {
-    OAuthToken {
-        token: String
-    },
-    None
-}
-
-impl Credentials {
-    pub fn oauth(token: String) -> Credentials {
-        Credentials::OAuthToken {token}
-    }
-
-    pub fn to_header(&self) -> String {
-        match self {
-            Credentials::OAuthToken {token} => format!("OAuth {}", token),
-            Credentials::None => panic!("tried to convert Credentials::NONE to header"),
-        }
-    }
-}
-
-impl Display for Credentials {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Credentials::OAuthToken {token} => write!(f, "oauth:{}", token),
-            Credentials::None => write!(f, "NONE")
-        }
-    }
-}
-
-#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
-pub struct Authentication {
-    pub credentials: Credentials,
-    pub user_info: UserInfo
-}
 
 type AuthMutex = Arc<(Mutex<Option<Authentication>>, Condvar)>;
 
@@ -111,8 +58,34 @@ fn auth_get(auth_req: State<AuthRequest>, auth: State<AuthMutex>, access_token: 
     "Successfully obtained access token! You can close this window now..".to_string()
 }
 
-impl Authentication {
-    pub fn twitch() -> Authentication {
+#[derive(Default)]
+pub struct TwitchAuthenticator;
+
+impl TwitchAuthenticator {
+    fn validate_token(&self, creds: &Credentials) -> UserInfo {
+        let client = reqwest::blocking::Client::new();
+        let response: reqwest::blocking::Response = client.get("https://id.twitch.tv/oauth2/validate")
+            .header("Authorization", creds.to_header())
+            .send()
+            .expect("validation request failed");
+        if !response.status().is_success() {
+            panic!("validation request failed: {}", response.status());
+        }
+        let body: String = response.text()
+            .expect("invalid response body");
+        let body: TwitchValidation = serde_json::from_str(&body).unwrap();
+        if body.client_id != TWITCH_CLIENT_ID {
+            panic!("Client-ID doesn't match the one used for auth. Expected: {}, Actual: {}", TWITCH_CLIENT_ID, body.client_id);
+        }
+        UserInfo::Twitch {
+            login: body.login,
+            user_id: body.user_id,
+        }
+    }
+}
+
+impl Authenticator for TwitchAuthenticator {
+    fn authenticate(&self) -> Authentication {
         let req = AuthRequest::default();
         info!("For authentication please grant Nemabot access to the Bots Twitch account at: '{}'", req.to_string());
         let auth_lock: AuthMutex = Arc::new((Mutex::new(None), Condvar::new()));
@@ -137,30 +110,9 @@ impl Authentication {
         }
         let mut auth = auth.take().unwrap();
 
-        auth.user_info = auth.validate_token();
+        auth.user_info = self.validate_token(&auth.credentials);
 
         auth
-    }
-
-    fn validate_token(&self) -> UserInfo {
-        let client = reqwest::blocking::Client::new();
-        let response: reqwest::blocking::Response = client.get("https://id.twitch.tv/oauth2/validate")
-            .header("Authorization", self.credentials.to_header())
-            .send()
-            .expect("validation request failed");
-        if !response.status().is_success() {
-            panic!("validation request failed: {}", response.status());
-        }
-        let body: String = response.text()
-            .expect("invalid response body");
-        let body: TwitchValidation = serde_json::from_str(&body).unwrap();
-        if body.client_id != TWITCH_CLIENT_ID {
-            panic!("Client-ID doesn't match the one used for auth. Expected: {}, Actual: {}", TWITCH_CLIENT_ID, body.client_id);
-        }
-        UserInfo::Twitch {
-            login: body.login,
-            user_id: body.user_id,
-        }
     }
 }
 
@@ -206,7 +158,7 @@ struct TwitchValidation {
 }
 
 impl AuthRequest {
-    pub fn new() -> AuthRequest {
+    fn new() -> AuthRequest {
         let auth_type = std::env::var(ENV_TWITCH_AUTH)
             .unwrap_or_else(|arg| {
                 warn!("Error fetching envvar: {}", arg);
@@ -248,14 +200,6 @@ impl AuthRequest {
                 }
             },
             t => panic!("Unsupported twitch authentication Type: {}", t)
-        }
-    }
-
-    pub fn client_id(&self) -> &String {
-        match self {
-            AuthRequest::ImplicitCode {client_id, ..} => client_id,
-            AuthRequest::AuthorizationCode { client_id, ..} => client_id,
-            AuthRequest::ClientCredentials {client_id, ..} => client_id
         }
     }
 }
@@ -307,8 +251,6 @@ impl Display for AuthRequest {
 #[cfg(test)]
 mod tests {
     use crate::twitch_api::AuthRequest;
-    use url::Url;
-    use std::str::FromStr;
 
     #[test]
     fn test_format() {

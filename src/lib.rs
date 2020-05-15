@@ -8,6 +8,7 @@ extern crate serde;
 extern crate rocket;
 
 pub mod twitch_api;
+pub mod auth;
 mod utils;
 
 use core::fmt;
