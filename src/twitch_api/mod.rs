@@ -14,11 +14,11 @@ use rocket::config::Environment;
 /// "code" = OAuth Authorization Code Flow,
 /// "client_credentials" = OAuth Client Credentials Flow
 pub const ENV_TWITCH_AUTH: &str = "BRS_TWITCH_AUTH";
-pub const ENV_TWITCH_CLIENT_ID: &str = "BRS_TWITCH_CLIENT_ID";
-pub const ENV_TWITCH_CLIENT_SECRET: &str = "BRS_TWITCH_CLIENT_SECRET";
+pub const TWITCH_CLIENT_ID: &str = env!("BRS_TWITCH_CLIENT_ID");
+pub const TWITCH_CLIENT_SECRET: Option<&str> = option_env!("BRS_TWITCH_CLIENT_SECRET");
+
 /// Optional Comma separated List of scopes defined at [](https://dev.twitch.tv/docs/authentication/#scopes). Defaults to: `["channel:moderate","chat:edit","chat:read","user:edit:follows","user_follows_edit"]`
 pub const ENV_TWITCH_SCOPES: &str = "BRS_TWITCH_SCOPES";
-
 const TWITCH_OAUTH_HANDLER_SCRIPT: &str = include_str!("twitch_oauth.html");
 
 static REDIRECT_URI: &str = "http://localhost:4334/";
@@ -74,12 +74,11 @@ impl Display for Credentials {
 
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
 pub struct Authentication {
-    pub auth: AuthRequest,
     pub credentials: Credentials,
     pub user_info: UserInfo
 }
 
-type AuthMutex = Arc<(Mutex<Authentication>, Condvar)>;
+type AuthMutex = Arc<(Mutex<Option<Authentication>>, Condvar)>;
 
 /// Endpoint serving the html to read the OAuth fragment generated.
 #[get("/")]
@@ -89,11 +88,8 @@ fn index() -> content::Html<&'static str> {
 
 /// Endpoint to actually register.
 #[post("/auth?<access_token>&<state>")]
-fn auth_get(auth: State<AuthMutex>, access_token: String, state: Option<String>) -> String {
-    let (lock, cvar) = auth.as_ref();
-    let mut token = lock.lock().unwrap();
-
-    let nonce = match token.auth {
+fn auth_get(auth_req: State<AuthRequest>, auth: State<AuthMutex>, access_token: String, state: Option<String>) -> String {
+    let nonce = match auth_req.inner() {
         AuthRequest::ImplicitCode { ref state, .. } => state,
         AuthRequest::AuthorizationCode { ref state, .. } => state,
         _ => ""
@@ -103,7 +99,13 @@ fn auth_get(auth: State<AuthMutex>, access_token: String, state: Option<String>)
         panic!("state doesn't match. Expected={}, Actual={}", nonce, state);
     }
 
-    token.credentials = Credentials::OAuthToken { token: access_token };
+    let (lock, cvar) = auth.as_ref();
+    let mut token = lock.lock().unwrap();
+
+    *token = Some(Authentication {
+        credentials: Credentials::OAuthToken { token: access_token },
+        user_info: UserInfo::None
+    });
     cvar.notify_all();
 
     "Successfully obtained access token! You can close this window now..".to_string()
@@ -113,7 +115,7 @@ impl Authentication {
     pub fn twitch() -> Authentication {
         let req = AuthRequest::default();
         info!("For authentication please grant Nemabot access to the Bots Twitch account at: '{}'", req.to_string());
-        let auth_lock: AuthMutex = Arc::new((Mutex::new(Authentication::from(req)), Condvar::new()));
+        let auth_lock: AuthMutex = Arc::new((Mutex::new(None), Condvar::new()));
 
         let r_auth_lock = Arc::clone(&auth_lock);
         thread::spawn(move || {
@@ -123,19 +125,21 @@ impl Authentication {
                 .expect("failed to build rocket config");
             rocket::custom(cfg)
                 .manage(Arc::clone(&r_auth_lock))
+                .manage(req)
                 .mount("/", routes![index, auth_get])
                 .launch();
         });
 
         let (lock, cvar) = &*auth_lock;
         let mut auth = lock.lock().unwrap();
-        while let Credentials::None = auth.credentials {
+        while auth.as_ref().map(|auth| &auth.credentials).is_none() {
             auth = cvar.wait(auth).unwrap();
         }
+        let mut auth = auth.take().unwrap();
 
         auth.user_info = auth.validate_token();
 
-        auth.clone()
+        auth
     }
 
     fn validate_token(&self) -> UserInfo {
@@ -150,22 +154,12 @@ impl Authentication {
         let body: String = response.text()
             .expect("invalid response body");
         let body: TwitchValidation = serde_json::from_str(&body).unwrap();
-        if &body.client_id != self.auth.client_id() {
-            panic!("Client-ID doesn't match the one used for auth. Expected: {}, Actual: {}", self.auth.client_id(), body.client_id);
+        if body.client_id != TWITCH_CLIENT_ID {
+            panic!("Client-ID doesn't match the one used for auth. Expected: {}, Actual: {}", TWITCH_CLIENT_ID, body.client_id);
         }
         UserInfo::Twitch {
             login: body.login,
             user_id: body.user_id,
-        }
-    }
-}
-
-impl From<AuthRequest> for Authentication {
-    fn from(auth: AuthRequest) -> Self {
-        Authentication {
-            auth,
-            credentials: Credentials::None,
-            user_info: UserInfo::None
         }
     }
 }
@@ -218,7 +212,6 @@ impl AuthRequest {
                 warn!("Error fetching envvar: {}", arg);
                 "token".to_string()
             });
-        let client_id = std::env::var(ENV_TWITCH_CLIENT_ID).expect("missing client id");
         let scope = std::env::var(ENV_TWITCH_SCOPES)
             .map(|val| {
                 let scopes: Vec<&str> = val.split(',').collect::<Vec<_>>();
@@ -231,26 +224,26 @@ impl AuthRequest {
 
         match auth_type.as_str() {
             "token" => AuthRequest::ImplicitCode {
-                client_id,
+                client_id: TWITCH_CLIENT_ID.to_string(),
                 redirect_uri: REDIRECT_URI.to_string(),
                 scope,
                 state: rand_alphanumeric(30),
                 force_verify: false
             },
             "code" => AuthRequest::AuthorizationCode {
-                client_id,
+                client_id: TWITCH_CLIENT_ID.to_string(),
                 redirect_uri: REDIRECT_URI.to_string(),
                 scope,
                 state: rand_alphanumeric(30),
                 force_verify: false
             },
             "client_credentials" => {
-                let client_secret = std::env::var(ENV_TWITCH_CLIENT_SECRET)
+                let client_secret = TWITCH_CLIENT_SECRET
                     .expect("client-secret required for client_credential authentication with twitch");
 
                 AuthRequest::ClientCredentials {
-                    client_id,
-                    client_secret,
+                    client_id: TWITCH_CLIENT_ID.to_string(),
+                    client_secret: client_secret.to_string(),
                     scope
                 }
             },
