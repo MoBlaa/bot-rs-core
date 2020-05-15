@@ -8,7 +8,9 @@ use std::thread;
 use rocket::response::content;
 use rocket::State;
 use rocket::config::Environment;
-use crate::auth::{Authenticator, Authentication, Credentials, UserInfo};
+use crate::auth::{Authenticator, Credentials, UserInfo, ValidationError};
+use chrono::{Duration, Local};
+use std::ops::Add;
 
 /// Configuring which authentication method should be used.
 /// "token" = OAuth Implicit Code Flow,
@@ -25,7 +27,7 @@ const TWITCH_OAUTH_HANDLER_SCRIPT: &str = include_str!("twitch_oauth.html");
 static REDIRECT_URI: &str = "http://localhost:4334/";
 static DEFAULT_SCOPES: [&str;6] = ["channel:moderate","chat:edit","chat:read","user:edit:follows","user_follows_edit", "user:edit"];
 
-type AuthMutex = Arc<(Mutex<Option<Authentication>>, Condvar)>;
+type AuthMutex = Arc<(Mutex<Option<Credentials>>, Condvar)>;
 
 /// Endpoint serving the html to read the OAuth fragment generated.
 #[get("/")]
@@ -49,10 +51,7 @@ fn auth_get(auth_req: State<AuthRequest>, auth: State<AuthMutex>, access_token: 
     let (lock, cvar) = auth.as_ref();
     let mut token = lock.lock().unwrap();
 
-    *token = Some(Authentication {
-        credentials: Credentials::OAuthToken { token: access_token },
-        user_info: UserInfo::None
-    });
+    *token = Some(Credentials::OAuthToken { token: access_token });
     cvar.notify_all();
 
     "Successfully obtained access token! You can close this window now..".to_string()
@@ -61,31 +60,8 @@ fn auth_get(auth_req: State<AuthRequest>, auth: State<AuthMutex>, access_token: 
 #[derive(Default)]
 pub struct TwitchAuthenticator;
 
-impl TwitchAuthenticator {
-    fn validate_token(&self, creds: &Credentials) -> UserInfo {
-        let client = reqwest::blocking::Client::new();
-        let response: reqwest::blocking::Response = client.get("https://id.twitch.tv/oauth2/validate")
-            .header("Authorization", creds.to_header())
-            .send()
-            .expect("validation request failed");
-        if !response.status().is_success() {
-            panic!("validation request failed: {}", response.status());
-        }
-        let body: String = response.text()
-            .expect("invalid response body");
-        let body: TwitchValidation = serde_json::from_str(&body).unwrap();
-        if body.client_id != TWITCH_CLIENT_ID {
-            panic!("Client-ID doesn't match the one used for auth. Expected: {}, Actual: {}", TWITCH_CLIENT_ID, body.client_id);
-        }
-        UserInfo::Twitch {
-            login: body.login,
-            user_id: body.user_id,
-        }
-    }
-}
-
 impl Authenticator for TwitchAuthenticator {
-    fn authenticate(&self) -> Authentication {
+    fn authenticate(&self) -> Credentials {
         let req = AuthRequest::default();
         info!("For authentication please grant Nemabot access to the Bots Twitch account at: '{}'", req.to_string());
         let auth_lock: AuthMutex = Arc::new((Mutex::new(None), Condvar::new()));
@@ -105,14 +81,36 @@ impl Authenticator for TwitchAuthenticator {
 
         let (lock, cvar) = &*auth_lock;
         let mut auth = lock.lock().unwrap();
-        while auth.as_ref().map(|auth| &auth.credentials).is_none() {
+        while auth.is_none() {
             auth = cvar.wait(auth).unwrap();
         }
-        let mut auth = auth.take().unwrap();
+        auth.take().unwrap()
+    }
 
-        auth.user_info = self.validate_token(&auth.credentials);
-
-        auth
+    fn validate(&self, cred: &Credentials) -> Result<UserInfo, ValidationError> {
+        let client = reqwest::blocking::Client::new();
+        let response: reqwest::blocking::Response = client.get("https://id.twitch.tv/oauth2/validate")
+            .header("Authorization", cred.to_header())
+            .send()
+            .expect("validation request failed");
+        if !response.status().is_success() {
+            error!("validation request failed: {}", response.status());
+            return Err(ValidationError::Invalid);
+        }
+        let body: String = response.text()
+            .expect("invalid response body");
+        let body: TwitchValidation = serde_json::from_str(&body).unwrap();
+        if body.client_id != TWITCH_CLIENT_ID {
+            error!("Client-ID doesn't match the one used for auth. Expected: {}, Actual: {}", TWITCH_CLIENT_ID, body.client_id);
+            return Err(ValidationError::BadClientId);
+        }
+        let exp_dur = Duration::seconds(body.expires_in);
+        let exp_date = Local::now().add(exp_dur);
+        warn!("Token expires on: {}", exp_date);
+        Ok(UserInfo::Twitch {
+            login: body.login,
+            user_id: body.user_id,
+        })
     }
 }
 
@@ -154,7 +152,7 @@ struct TwitchValidation {
     login: String,
     user_id: String,
     scopes: Vec<String>,
-    expires_in: usize,
+    expires_in: i64,
 }
 
 impl AuthRequest {
