@@ -19,13 +19,25 @@ use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use irc_rust::message::Message;
+use irc_rust::message::Message as IrcMessage;
 use libloading::Library;
 
 pub const CORE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const RUSTC_VERSION: &str = env!("RUSTC_VERSION");
 
-pub trait Command {
+pub enum Message {
+    Irc(IrcMessage)
+}
+
+impl Display for Message {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Message::Irc(msg) => write!(f, "{}", msg)
+        }
+    }
+}
+
+pub trait SimpleCommand {
     /// Calls the command. Like Argv the args contain the name
     /// of the command as first element.
     fn call(&self, args: &[&str]) -> Result<Vec<String>, InvocationError>;
@@ -33,7 +45,7 @@ pub trait Command {
     fn info(&self) -> String;
 }
 
-pub trait IrcCommand {
+pub trait Command {
     /// Extracts the parameters from the invocation string.
     /// Asserts the first character of the invocation is `!`.
     ///
@@ -59,7 +71,7 @@ pub trait IrcCommand {
         result
     }
 
-    fn call_raw(&self, message: &Message) -> Result<Vec<Message>, InvocationError>;
+    fn call(&self, message: &Message) -> Result<Vec<Message>, InvocationError>;
 
     fn info(&self) -> String;
 }
@@ -161,8 +173,8 @@ pub struct CommandDeclaration {
 }
 
 pub trait CommandRegistrar {
-    fn register_command(&mut self, names: &[&str], command: Rc<dyn Command>);
-    fn register_irc_command(&mut self, command: Rc<dyn IrcCommand>);
+    fn register_command(&mut self, names: &[&str], command: Rc<dyn SimpleCommand>);
+    fn register_irc_command(&mut self, command: Rc<dyn Command>);
 }
 
 #[macro_export]
@@ -179,11 +191,11 @@ macro_rules! export_command {
 }
 
 struct CommandProxy {
-    command: Rc<dyn Command>,
+    command: Rc<dyn SimpleCommand>,
     _lib: Rc<Library>,
 }
 
-impl Command for CommandProxy {
+impl SimpleCommand for CommandProxy {
     fn call(&self, args: &[&str]) -> Result<Vec<String>, InvocationError> {
         self.command.call(args)
     }
@@ -194,13 +206,13 @@ impl Command for CommandProxy {
 }
 
 struct IrcCommandProxy {
-    command: Rc<dyn IrcCommand>,
+    command: Rc<dyn Command>,
     _lib: Rc<Library>,
 }
 
-impl IrcCommand for IrcCommandProxy {
-    fn call_raw(&self, message: &Message) -> Result<Vec<Message>, InvocationError> {
-        self.command.call_raw(message)
+impl Command for IrcCommandProxy {
+    fn call(&self, message: &Message) -> Result<Vec<Message>, InvocationError> {
+        self.command.call(message)
     }
 
     fn info(&self) -> String {
@@ -287,7 +299,7 @@ impl Commands {
     }
 }
 
-impl Command for Commands {
+impl SimpleCommand for Commands {
     fn call(&self, arguments: &[&str]) -> Result<Vec<String>, InvocationError> {
         self.commands
             .get(arguments[0])
@@ -300,11 +312,11 @@ impl Command for Commands {
     }
 }
 
-impl IrcCommand for Commands {
-    fn call_raw(&self, message: &Message) -> Result<Vec<Message>, InvocationError> {
+impl Command for Commands {
+    fn call(&self, message: &Message) -> Result<Vec<Message>, InvocationError> {
         let mut result = Vec::new();
         for cmd in self.irc_commands.iter() {
-            let mut res = cmd.call_raw(message)?;
+            let mut res = cmd.call(message)?;
             result.append(&mut res);
         }
         Ok(result)
@@ -332,7 +344,7 @@ impl SimpleRegistrar {
 }
 
 impl CommandRegistrar for SimpleRegistrar {
-    fn register_command(&mut self, names: &[&str], command: Rc<dyn Command>) {
+    fn register_command(&mut self, names: &[&str], command: Rc<dyn SimpleCommand>) {
         for name in names {
             let proxy = CommandProxy {
                 command: Rc::clone(&command),
@@ -344,7 +356,7 @@ impl CommandRegistrar for SimpleRegistrar {
         }
     }
 
-    fn register_irc_command(&mut self, command: Rc<dyn IrcCommand>) {
+    fn register_irc_command(&mut self, command: Rc<dyn Command>) {
         let proxy = IrcCommandProxy {
             command: Rc::clone(&command),
             _lib: Rc::clone(&self.lib),
