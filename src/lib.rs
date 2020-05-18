@@ -25,6 +25,8 @@ use libloading::Library;
 pub const CORE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const RUSTC_VERSION: &str = env!("RUSTC_VERSION");
 
+pub const JOINED_CHANNELS_ENV: &str = "BRS_JOINED_CHANNELS";
+
 pub enum Message {
     Irc(IrcMessage)
 }
