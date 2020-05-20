@@ -31,7 +31,7 @@ pub struct GetUsersRes {
 pub struct UserRes {
     #[serde(rename = "_id")]
     pub id: String,
-    pub bio: String,
+    pub bio: Option<String>,
     pub created_at: String,
     pub display_name: String,
     pub logo: String,

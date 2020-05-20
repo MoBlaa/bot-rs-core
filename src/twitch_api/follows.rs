@@ -1,4 +1,4 @@
-use chrono::{NaiveDateTime, NaiveDate};
+use chrono::{NaiveDateTime, NaiveDate, DateTime, FixedOffset, Utc};
 
 #[derive(Serialize, Deserialize)]
 pub struct Follow {
@@ -10,10 +10,11 @@ pub struct Follow {
 }
 
 impl Follow {
-    pub fn followed_at(&self) -> NaiveDate {
-        NaiveDateTime::parse_from_str(&self.followed_at, "%Y-%m-%d'T'%H:%M:%s'Z'")
-            .map(|dt|dt.date())
-            .expect("invalid date format")
+    pub fn followed_at(&self) -> NaiveDateTime {
+        match DateTime::parse_from_rfc3339(&self.followed_at) {
+            Err(why) => panic!("failed to parse followed_at '{}': {}", self.followed_at, why),
+            Ok(dt) => dt.naive_utc()
+        }
     }
 }
 
