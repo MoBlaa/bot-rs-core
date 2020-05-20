@@ -4,8 +4,10 @@
 extern crate log;
 #[macro_use]
 extern crate serde;
+extern crate serde_json;
 #[macro_use]
 extern crate rocket;
+extern crate chrono;
 
 pub mod twitch_api;
 pub mod auth;
@@ -25,7 +27,7 @@ use libloading::Library;
 pub const CORE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const RUSTC_VERSION: &str = env!("RUSTC_VERSION");
 
-pub const JOINED_CHANNELS_ENV: &str = "BRS_JOINED_CHANNELS";
+pub const ENV_JOINED_CHANNELS: &str = "BRS_JOINED_CHANNELS";
 
 pub enum Message {
     Irc(IrcMessage)

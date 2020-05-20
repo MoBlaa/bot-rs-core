@@ -17,6 +17,13 @@ impl UserInfo {
             UserInfo::None => String::new()
         }
     }
+
+    pub fn id(&self) -> String {
+        match self {
+            UserInfo::Twitch {user_id, ..} => user_id.clone(),
+            UserInfo::None => String::new()
+        }
+    }
 }
 
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
@@ -25,15 +32,6 @@ pub enum Credentials {
         token: String
     },
     None,
-}
-
-impl Credentials {
-    pub fn to_header(&self) -> String {
-        match self {
-            Credentials::OAuthToken { token } => format!("OAuth {}", token),
-            Credentials::None => panic!("tried to convert Credentials::NONE to header"),
-        }
-    }
 }
 
 impl Display for Credentials {
