@@ -1,4 +1,4 @@
-use chrono::{NaiveDateTime, NaiveDate, DateTime, FixedOffset, Utc};
+use chrono::{NaiveDateTime, DateTime};
 
 #[derive(Serialize, Deserialize)]
 pub struct Follow {
