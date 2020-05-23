@@ -1,6 +1,11 @@
 use core::fmt;
 use std::fmt::{Display, Formatter};
 
+#[derive(Deserialize, Serialize, PartialEq, Debug)]
+pub enum Platform {
+    Twitch
+}
+
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
 pub enum UserInfo {
     Twitch {

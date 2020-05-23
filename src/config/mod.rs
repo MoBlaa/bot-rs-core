@@ -1,4 +1,4 @@
-use crate::auth::Credentials;
+use crate::auth::{Credentials, Platform};
 use std::collections::HashMap;
 use dirs_next::config_dir;
 use std::path::PathBuf;
@@ -53,9 +53,11 @@ impl Display for ProfileError {
 /// Profile configuration containing configurations for the Bot-RS Core functionality.
 ///
 /// Profile configurations are located at `{{ENV_CONFIG_DIR}}/profiles/{profile-name}`.
+///
+/// A Profile is only allowed to join the channel its named after.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Profile {
-    credentials: HashMap<String, Credentials>,
+    credentials: HashMap<Platform, Credentials>,
 }
 
 impl Profile {
@@ -69,6 +71,11 @@ impl Profile {
         let cfg_file = dir.path().join("config.json");
         let content = read_to_string(cfg_file).map_err(ProfileError::from)?;
         serde_json::from_str(&content).map_err(ProfileError::from)
+    }
+
+    /// Sets the given credentials for the platform. Overwrites existing credentials for the platform.
+    pub fn set_credentials(&mut self, platform: Platform, creds: Credentials) {
+        self.credentials.insert(platform, creds);
     }
 
     pub fn save(&self, path: PathBuf) -> Result<(), ProfileError> {
@@ -122,6 +129,18 @@ impl Profiles {
         }
         self.profiles.insert(osstr, Profile::new());
         Ok(())
+    }
+
+    pub fn set_credentials(&mut self, profile: &str, platform: Platform, creds: Credentials) {
+        let osstr = OsString::from(profile);
+        if self.profiles.contains_key(&osstr) {
+            let profile = self.profiles.get_mut(&osstr).unwrap();
+            profile.set_credentials(platform, creds);
+        } else {
+            let mut profile = Profile::new();
+            profile.set_credentials(platform, creds);
+            self.profiles.insert(osstr, profile);
+        }
     }
 
     pub fn save(&self) -> Result<(), ProfileError> {
