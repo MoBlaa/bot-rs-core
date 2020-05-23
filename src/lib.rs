@@ -11,6 +11,7 @@ extern crate chrono;
 
 pub mod twitch_api;
 pub mod auth;
+pub mod config;
 mod utils;
 
 use core::fmt;
