@@ -55,7 +55,7 @@ impl Display for ProfileError {
 /// Profile configurations are located at `{{ENV_CONFIG_DIR}}/profiles/{profile-name}`.
 ///
 /// A Profile is only allowed to join the channel its named after.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Profile {
     credentials: HashMap<Platform, Credentials>,
 }
@@ -67,6 +67,10 @@ impl Profile {
         }
     }
 
+    pub fn profile_dir(name: OsString) -> PathBuf {
+        Profiles::profiles_dir().join(name)
+    }
+
     pub fn from_dir(dir: &DirEntry) -> Result<Self, ProfileError> {
         let cfg_file = dir.path().join("config.json");
         let content = read_to_string(cfg_file).map_err(ProfileError::from)?;
@@ -76,6 +80,10 @@ impl Profile {
     /// Sets the given credentials for the platform. Overwrites existing credentials for the platform.
     pub fn set_credentials(&mut self, platform: Platform, creds: Credentials) {
         self.credentials.insert(platform, creds);
+    }
+
+    pub fn get_credentials(&self, platform: &Platform) -> Option<&Credentials> {
+        self.credentials.get(platform)
     }
 
     pub fn save(&self, path: PathBuf) -> Result<(), ProfileError> {
@@ -92,11 +100,11 @@ pub struct Profiles {
 }
 
 impl Profiles {
-    fn cfg_dir() -> PathBuf {
-        config_dir().expect("missing config directory").join(".botrs")
+    pub fn cfg_dir() -> PathBuf {
+        config_dir().expect("missing config directory").join("botrs")
     }
 
-    fn profiles_dir() -> PathBuf {
+    pub fn profiles_dir() -> PathBuf {
         Self::cfg_dir().join("profiles")
     }
 
@@ -131,16 +139,14 @@ impl Profiles {
         Ok(())
     }
 
-    pub fn set_credentials(&mut self, profile: &str, platform: Platform, creds: Credentials) {
-        let osstr = OsString::from(profile);
-        if self.profiles.contains_key(&osstr) {
-            let profile = self.profiles.get_mut(&osstr).unwrap();
-            profile.set_credentials(platform, creds);
-        } else {
-            let mut profile = Profile::new();
-            profile.set_credentials(platform, creds);
-            self.profiles.insert(osstr, profile);
-        }
+    pub fn get<S: AsRef<str>>(&self, profile: S) -> Option<&Profile> {
+        let osstr = OsString::from(profile.as_ref());
+        self.profiles.get(&osstr)
+    }
+
+    pub fn get_mut<S: AsRef<str>>(&mut self, profile: S) -> Option<&mut Profile> {
+        let osstr = OsString::from(profile.as_ref());
+        self.profiles.get_mut(&osstr)
     }
 
     pub fn save(&self) -> Result<(), ProfileError> {

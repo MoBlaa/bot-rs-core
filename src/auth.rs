@@ -1,7 +1,7 @@
 use core::fmt;
 use std::fmt::{Display, Formatter};
 
-#[derive(Deserialize, Serialize, PartialEq, Debug)]
+#[derive(Deserialize, Serialize, PartialEq, Eq, Debug, Hash)]
 pub enum Platform {
     Twitch
 }
@@ -31,7 +31,7 @@ impl UserInfo {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[derive(Clone, Deserialize, Serialize, PartialEq, Eq, Debug)]
 pub enum Credentials {
     OAuthToken {
         token: String
