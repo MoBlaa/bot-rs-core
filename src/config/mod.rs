@@ -2,7 +2,7 @@ use crate::auth::{Credentials, Platform};
 use std::collections::HashMap;
 use dirs_next::config_dir;
 use std::path::PathBuf;
-use std::fs::{read_to_string, read_dir, DirEntry, File};
+use std::fs::{read_to_string, read_dir, DirEntry, File, create_dir_all};
 use std::{io, error};
 use serde::export::fmt::Display;
 use serde_json::Error as JsonError;
@@ -57,12 +57,15 @@ impl Display for ProfileError {
 /// A Profile is only allowed to join the channel its named after.
 #[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
 pub struct Profile {
+    #[serde(skip)]
+    name: String,
     credentials: HashMap<Platform, Credentials>,
 }
 
 impl Profile {
-    pub fn new() -> Self {
+    pub fn new(name: String) -> Self {
         Profile {
+            name,
             credentials: HashMap::new()
         }
     }
@@ -74,7 +77,9 @@ impl Profile {
     pub fn from_dir(dir: &DirEntry) -> Result<Self, ProfileError> {
         let cfg_file = dir.path().join("config.json");
         let content = read_to_string(cfg_file).map_err(ProfileError::from)?;
-        serde_json::from_str(&content).map_err(ProfileError::from)
+        let mut profile: Profile = serde_json::from_str(&content).map_err(ProfileError::from)?;
+        profile.name = dir.file_name().into_string().expect("failed to create string from profile dir name");
+        Ok(profile)
     }
 
     /// Sets the given credentials for the platform. Overwrites existing credentials for the platform.
@@ -88,8 +93,24 @@ impl Profile {
 
     pub fn save(&self, path: PathBuf) -> Result<(), ProfileError> {
         let json = serde_json::to_string_pretty(self).map_err(ProfileError::from)?;
-        let mut file = File::create(path).map_err(ProfileError::from)?;
+        create_dir_all(&path).expect("failed to create profile directory");
+        let mut file = File::create(path.join("config.json")).map_err(ProfileError::from)?;
         file.write(json.as_bytes()).map_err(ProfileError::from)?;
+        Ok(())
+    }
+}
+
+impl Display for Profile {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Name: {}", self.name)?;
+        if self.credentials.is_empty() {
+            write!(f, "Credentials: None")?;
+        } else {
+            writeln!(f, "Credentials:")?;
+            for (platform, creds) in self.credentials.iter() {
+                writeln!(f, "\t{:?}: {}", platform, creds)?;
+            }
+        }
         Ok(())
     }
 }
@@ -110,7 +131,9 @@ impl Profiles {
 
     pub fn load() -> Self {
         // TODO: Create directories if not present currently
-        let paths = read_dir(Self::profiles_dir()).expect("failed to read config directory");
+        let path = Self::profiles_dir();
+        create_dir_all(&path).expect("failed to create profile config files");
+        let paths = read_dir(&path).expect("failed to read config directory");
         let mut profiles = HashMap::new();
 
         for path in paths {
@@ -131,11 +154,12 @@ impl Profiles {
     }
 
     pub fn create_profile(&mut self, name: &str) -> Result<(), ProfileError> {
-        let osstr = OsString::from(name);
+        let osstr = OsString::from(&name);
         if self.profiles.contains_key(&osstr) {
             return Err(ProfileError::AlreadyExists(osstr));
         }
-        self.profiles.insert(osstr, Profile::new());
+        self.profiles.insert(osstr, Profile::new(name.to_string()));
+        self.save().expect("failed to save profiles");
         Ok(())
     }
 
