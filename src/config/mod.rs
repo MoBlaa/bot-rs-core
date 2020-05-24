@@ -2,7 +2,7 @@ use crate::auth::{Credentials, Platform};
 use std::collections::HashMap;
 use dirs_next::config_dir;
 use std::path::PathBuf;
-use std::fs::{read_to_string, read_dir, DirEntry, File, create_dir_all};
+use std::fs::{read_to_string, read_dir, DirEntry, File, create_dir_all, remove_dir_all};
 use std::{io, error};
 use serde::export::fmt::Display;
 use serde_json::Error as JsonError;
@@ -55,7 +55,7 @@ impl Display for ProfileError {
 /// Profile configurations are located at `{{ENV_CONFIG_DIR}}/profiles/{profile-name}`.
 ///
 /// A Profile is only allowed to join the channel its named after.
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
 pub struct Profile {
     #[serde(skip)]
     name: String,
@@ -91,20 +91,26 @@ impl Profile {
         self.credentials.get(platform)
     }
 
-    pub fn save(&self, path: PathBuf) -> Result<(), ProfileError> {
+    pub fn save(&self) -> Result<(), ProfileError> {
+        let path = Profiles::profiles_dir().join(&self.name);
         let json = serde_json::to_string_pretty(self).map_err(ProfileError::from)?;
         create_dir_all(&path).expect("failed to create profile directory");
         let mut file = File::create(path.join("config.json")).map_err(ProfileError::from)?;
         file.write(json.as_bytes()).map_err(ProfileError::from)?;
         Ok(())
     }
+
+    pub fn delete(&self) -> Result<(), ProfileError> {
+        remove_dir_all(Profiles::profiles_dir().join(&self.name))
+            .map_err(|why| ProfileError::IO(why))
+    }
 }
 
 impl Display for Profile {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Name: {}", self.name)?;
+        writeln!(f, "Name:\t\t{}", self.name)?;
         if self.credentials.is_empty() {
-            write!(f, "Credentials: None")?;
+            write!(f, "Credentials:\tNone")?;
         } else {
             writeln!(f, "Credentials:")?;
             for (platform, creds) in self.credentials.iter() {
@@ -153,13 +159,20 @@ impl Profiles {
         }
     }
 
-    pub fn create_profile(&mut self, name: &str) -> Result<(), ProfileError> {
-        let osstr = OsString::from(&name);
+    pub fn add(&mut self, profile: Profile) -> Result<(), ProfileError> {
+        let osstr = OsString::from(&profile.name);
         if self.profiles.contains_key(&osstr) {
             return Err(ProfileError::AlreadyExists(osstr));
         }
-        self.profiles.insert(osstr, Profile::new(name.to_string()));
-        self.save().expect("failed to save profiles");
+        self.profiles.insert(osstr, profile);
+        Ok(())
+    }
+
+    pub fn delete<S: AsRef<str>>(&mut self, name: S) -> Result<(), ProfileError> {
+        let osstr = OsString::from(name.as_ref());
+        if let Some(profile) = self.profiles.remove(&osstr) {
+            profile.delete()?;
+        }
         Ok(())
     }
 
@@ -174,9 +187,8 @@ impl Profiles {
     }
 
     pub fn save(&self) -> Result<(), ProfileError> {
-        for (name, profile) in self.profiles.iter() {
-            let path = Self::profiles_dir().join(name);
-            profile.save(path)?;
+        for (_, profile) in self.profiles.iter() {
+            profile.save()?;
         }
         Ok(())
     }
