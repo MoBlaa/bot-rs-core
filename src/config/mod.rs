@@ -91,8 +91,12 @@ impl Profile {
         self.credentials.get(platform)
     }
 
+    pub fn path(&self) -> PathBuf {
+        Profiles::profiles_dir().join(&self.name)
+    }
+
     pub fn save(&self) -> Result<(), ProfileError> {
-        let path = Profiles::profiles_dir().join(&self.name);
+        let path = self.path();
         let json = serde_json::to_string_pretty(self).map_err(ProfileError::from)?;
         create_dir_all(&path).expect("failed to create profile directory");
         let mut file = File::create(path.join("config.json")).map_err(ProfileError::from)?;
@@ -101,8 +105,8 @@ impl Profile {
     }
 
     pub fn delete(&self) -> Result<(), ProfileError> {
-        remove_dir_all(Profiles::profiles_dir().join(&self.name))
-            .map_err(|why| ProfileError::IO(why))
+        remove_dir_all(self.path())
+            .map_err(ProfileError::IO)
     }
 }
 
@@ -128,12 +132,8 @@ pub struct Profiles {
 }
 
 impl Profiles {
-    pub fn cfg_dir() -> PathBuf {
-        config_dir().expect("missing config directory").join("botrs")
-    }
-
     pub fn profiles_dir() -> PathBuf {
-        Self::cfg_dir().join("profiles")
+        Configs::cfg_dir().join("profiles")
     }
 
     pub fn load() -> Self {
@@ -192,5 +192,13 @@ impl Profiles {
             profile.save()?;
         }
         Ok(())
+    }
+}
+
+pub struct Configs;
+
+impl Configs {
+    pub fn cfg_dir() -> PathBuf {
+        config_dir().expect("missing config directory").join("botrs")
     }
 }
