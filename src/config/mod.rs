@@ -108,6 +108,7 @@ impl Profile {
 
 impl Display for Profile {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Location:\t{}", Self::profile_dir(OsString::from(&self.name)).display())?;
         writeln!(f, "Name:\t\t{}", self.name)?;
         if self.credentials.is_empty() {
             write!(f, "Credentials:\tNone")?;
