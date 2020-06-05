@@ -144,7 +144,6 @@ impl Profiles {
     }
 
     pub fn load() -> Self {
-        // TODO: Create directories if not present currently
         let path = Self::profiles_dir();
         create_dir_all(&path).expect("failed to create profile config files");
         let paths = read_dir(&path).expect("failed to read config directory");
