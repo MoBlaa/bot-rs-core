@@ -107,6 +107,8 @@ impl Profile {
         create_dir_all(&path).expect("failed to create profile directory");
         let mut file = File::create(path.join("config.json")).map_err(ProfileError::from)?;
         file.write(json.as_bytes()).map_err(ProfileError::from)?;
+        let plugins_dir = path.join("plugins");
+        create_dir_all(&plugins_dir).expect("failed to create plugins dir in profile directory");
         Ok(())
     }
 
