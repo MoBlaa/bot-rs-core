@@ -227,6 +227,11 @@ impl Commands {
                 }
             }
         }
+
+        if self.libraries.is_empty() {
+            warn!("No plugins loaded!");
+        }
+
         Ok(())
     }
 
