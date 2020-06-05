@@ -55,7 +55,7 @@ impl Display for ProfileError {
 /// Profile configurations are located at `{{ENV_CONFIG_DIR}}/profiles/{profile-name}`.
 ///
 /// A Profile is only allowed to join the channel its named after.
-#[derive(Debug, Serialize, Deserialize, Eq, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Profile {
     #[serde(skip)]
     name: String,
@@ -66,8 +66,12 @@ impl Profile {
     pub fn new(name: String) -> Self {
         Profile {
             name,
-            credentials: HashMap::new()
+            credentials: HashMap::new(),
         }
+    }
+
+    pub fn plugins_dir(&self) -> PathBuf {
+        Self::profile_dir(OsString::from(self.name.as_str())).join("plugins")
     }
 
     pub fn profile_dir(name: OsString) -> PathBuf {
@@ -75,10 +79,12 @@ impl Profile {
     }
 
     pub fn from_dir(dir: &DirEntry) -> Result<Self, ProfileError> {
+        // Load config file of profile
         let cfg_file = dir.path().join("config.json");
         let content = read_to_string(cfg_file).map_err(ProfileError::from)?;
         let mut profile: Profile = serde_json::from_str(&content).map_err(ProfileError::from)?;
         profile.name = dir.file_name().into_string().expect("failed to create string from profile dir name");
+
         Ok(profile)
     }
 
@@ -126,9 +132,8 @@ impl Display for Profile {
     }
 }
 
-#[derive(Debug)]
 pub struct Profiles {
-    profiles: HashMap<OsString, Profile>
+    profiles: HashMap<OsString, Profile>,
 }
 
 impl Profiles {
