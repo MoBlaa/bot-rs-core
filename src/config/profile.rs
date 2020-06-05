@@ -101,14 +101,18 @@ impl Profile {
         Profiles::profiles_dir().join(&self.name)
     }
 
+    pub fn plugins_path(&self) -> PathBuf {
+        self.path().join("plugins")
+    }
+
     pub fn save(&self) -> Result<(), ProfileError> {
         let path = self.path();
         let json = serde_json::to_string_pretty(self).map_err(ProfileError::from)?;
         create_dir_all(&path).expect("failed to create profile directory");
         let mut file = File::create(path.join("config.json")).map_err(ProfileError::from)?;
         file.write(json.as_bytes()).map_err(ProfileError::from)?;
-        let plugins_dir = path.join("plugins");
-        create_dir_all(&plugins_dir).expect("failed to create plugins dir in profile directory");
+        let plugins_dir = self.plugins_path();
+        create_dir_all(&plugins_dir).expect("failed to create plugins dir inside profile directory");
         Ok(())
     }
 
@@ -153,7 +157,7 @@ impl Profiles {
             let path = path.expect("failed to get path of configuration subdir");
             if path.file_type().expect("failed to get file-type").is_dir() {
                 match Profile::from_dir(&path) {
-                    Err(why) => warn!("failed to load profile config: {}", why),
+                    Err(why) => warn!("failed to load profile config '{}': {}", path.path().display(), why),
                     Ok(profile) => {
                         profiles.insert(path.file_name(), profile);
                     },
@@ -206,5 +210,13 @@ pub struct Configs;
 impl Configs {
     pub fn cfg_dir() -> PathBuf {
         config_dir().expect("missing config directory").join("botrs")
+    }
+
+    pub fn log_path() -> PathBuf {
+        Self::cfg_dir().join("log")
+    }
+
+    pub fn stats_path() -> PathBuf {
+        Self::cfg_dir().join("stats")
     }
 }
