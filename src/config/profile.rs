@@ -159,6 +159,14 @@ impl Display for Profile {
                 writeln!(f, "\t{:?}: {}", platform, creds)?;
             }
         }
+        if self.rights.is_empty() {
+            writeln!(f, "Access Rights:\tOnly Broadcaster")?;
+        } else {
+            writeln!(f, "Access Rights:")?;
+            for (name, filter) in self.rights.iter() {
+                writeln!(f, "\t{}: {}", name, filter)?;
+            }
+        }
         Ok(())
     }
 }

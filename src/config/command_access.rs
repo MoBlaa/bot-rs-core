@@ -3,6 +3,9 @@ use std::collections::HashMap;
 use regex::Regex;
 
 use crate::Message;
+use std::fmt::Display;
+use serde::export::Formatter;
+use core::fmt;
 
 #[derive(Serialize, Deserialize, Default, Clone)]
 pub struct AccessRights {
@@ -15,6 +18,14 @@ impl AccessRights {
         AccessRights {
             filters: HashMap::new()
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.filters.is_empty()
+    }
+
+    pub fn iter(&self) -> std::collections::hash_map::Iter<String, AccessFilter> {
+        self.filters.iter()
     }
 
     pub fn allowed(&self, mssg: &Message) -> Option<bool> {
@@ -39,13 +50,13 @@ impl AccessRights {
 #[derive(Serialize, Deserialize, Clone)]
 pub enum AccessFilter {
     /// Checks if a badge mathes the given regex.
-    BadgeFilter(String)
+    Badge(String)
 }
 
 impl AccessFilter {
     pub fn matches(&self, mssg: &Message) -> bool {
         match self {
-            AccessFilter::BadgeFilter(regex) => {
+            AccessFilter::Badge(regex) => {
                 match mssg {
                     Message::Irc(mssg) => {
                         mssg.tags()
@@ -60,6 +71,14 @@ impl AccessFilter {
                     }
                 }
             }
+        }
+    }
+}
+
+impl Display for AccessFilter {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            AccessFilter::Badge(regex) => write!(f, "{} Badge", regex)
         }
     }
 }
