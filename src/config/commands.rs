@@ -1,12 +1,14 @@
-use crate::{CORE_VERSION, Message, RUSTC_VERSION};
-use std::collections::HashMap;
-use libloading::Library;
-use std::rc::Rc;
-use std::ffi::OsStr;
-use std::{io, fs};
-use std::path::PathBuf;
 use core::fmt;
-use std::fmt::{Formatter, Display};
+use std::{fs, io};
+use std::collections::HashMap;
+use std::ffi::OsStr;
+use std::fmt::{Display, Formatter};
+use std::path::PathBuf;
+use std::rc::Rc;
+
+use libloading::Library;
+
+use crate::{CORE_VERSION, Message, RUSTC_VERSION};
 
 pub trait SimpleCommand {
     /// Calls the command. Like Argv the args contain the name
@@ -17,31 +19,6 @@ pub trait SimpleCommand {
 }
 
 pub trait Command {
-    /// Extracts the parameters from the invocation string.
-    /// Asserts the first character of the invocation is `!`.
-    ///
-    /// # Example
-    ///
-    /// ```ignore
-    /// let params = extract_params("!random 0 20");
-    /// assert_eq!(params, vec!["0", "20"]);
-    /// ```
-    fn extract_params<'a>(&self, invocation: &'a str) -> Vec<&'a str> {
-        if !invocation.starts_with('!') {
-            panic!("invoked without prefixing with `!`");
-        }
-        let mut result = Vec::new();
-        if let Some(index) = invocation.chars().position(|c| c == ' ') {
-            let name = &invocation[1..index];
-            result.push(name);
-            result.extend(invocation[index + 1..].split(' ').collect::<Vec<_>>());
-        } else {
-            let name = &invocation[1..];
-            result.push(name);
-        }
-        result
-    }
-
     fn call(&self, message: &Message) -> Result<Vec<Message>, InvocationError>;
 
     fn info(&self) -> String;
@@ -53,11 +30,35 @@ pub trait Command {
 macro_rules! implement_irc {
     ($type:ty) => {
         use irc_rust::message::Message;
+        use bot_rs_core::Profile;
+
+        #[doc(hidden)]
+        impl $type {
+            fn extract_params<'a>(&self, invocation: &'a str) -> Vec<&'a str> {
+                if !invocation.starts_with('!') {
+                    panic!("invoked without prefixing with `!`");
+                }
+                let mut result = Vec::new();
+                if let Some(index) = invocation.chars().position(|c| c == ' ') {
+                    let name = &invocation[1..index];
+                    result.push(name);
+                    result.extend(invocation[index + 1..].split(' ').collect::<Vec<_>>());
+                } else {
+                    let name = &invocation[1..];
+                    result.push(name);
+                }
+                result
+            }
+        }
 
         #[doc(hidden)]
         impl $crate::IrcCommand for $type {
             fn call_raw(&self, message: &Message) -> Result<Vec<Message>, $crate::InvocationError> {
                 if message.command() != "PRIVMSG" {
+                    return Ok(Vec::with_capacity(0));
+                }
+                let profile: Profile = Profile::active();
+                if !profile.rights().allowed(message).unwrap_or(false) {
                     return Ok(Vec::with_capacity(0));
                 }
 

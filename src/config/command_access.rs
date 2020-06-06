@@ -33,14 +33,14 @@ impl AccessRights {
             Message::Irc(irc_mssg) => {
                 irc_mssg.params()
                     .and_then(|params| params.trailing)
-                    .map(|trailing| {
+                    .and_then(|trailing| {
                         let trailing = trailing.trim_start();
                         for (name, filter) in self.filters.iter() {
                             if trailing.starts_with(name) {
-                                return filter.matches(mssg);
+                                return Some(filter.matches(mssg));
                             }
                         }
-                        false
+                        None
                     })
             }
         }
