@@ -10,6 +10,9 @@ use serde::export::Formatter;
 use core::fmt;
 use std::ffi::OsString;
 use std::io::Write;
+use crate::config::command_access::AccessRights;
+
+const ENV_ACTIVE_PROFILE: &str = "BRS_ACTIVE_PROFILE";
 
 #[derive(Debug)]
 pub enum ProfileError {
@@ -57,9 +60,9 @@ impl Display for ProfileError {
 /// A Profile is only allowed to join the channel its named after.
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Profile {
-    #[serde(skip)]
     name: String,
     credentials: HashMap<Platform, Credentials>,
+    rights: AccessRights
 }
 
 impl Profile {
@@ -67,15 +70,20 @@ impl Profile {
         Profile {
             name,
             credentials: HashMap::new(),
+            rights: AccessRights::new()
         }
     }
 
-    pub fn plugins_dir(&self) -> PathBuf {
-        Self::profile_dir(OsString::from(self.name.as_str())).join("plugins")
-    }
-
-    pub fn profile_dir(name: OsString) -> PathBuf {
-        Profiles::profiles_dir().join(name)
+    pub fn active() -> Option<Self> {
+        if let Ok(env_var) = std::env::var(ENV_ACTIVE_PROFILE) {
+            if let Ok(profile) = serde_json::from_str::<Profile>(env_var.as_str()) {
+                Some(profile)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 
     pub fn from_dir(dir: &DirEntry) -> Result<Self, ProfileError> {
@@ -88,6 +96,19 @@ impl Profile {
         Ok(profile)
     }
 
+    pub fn profile_dir(name: OsString) -> PathBuf {
+        Profiles::profiles_dir().join(name)
+    }
+
+    pub fn set_active(&self) {
+        let ser = serde_json::to_string(self).expect("failed to serialize profile");
+        std::env::set_var(ENV_ACTIVE_PROFILE, ser);
+    }
+
+    pub fn plugins_dir(&self) -> PathBuf {
+        Self::profile_dir(OsString::from(self.name.as_str())).join("plugins")
+    }
+
     /// Sets the given credentials for the platform. Overwrites existing credentials for the platform.
     pub fn set_credentials(&mut self, platform: Platform, creds: Credentials) {
         self.credentials.insert(platform, creds);
@@ -95,6 +116,10 @@ impl Profile {
 
     pub fn get_credentials(&self, platform: &Platform) -> Option<&Credentials> {
         self.credentials.get(platform)
+    }
+
+    pub fn rights(&self) -> &AccessRights {
+        &self.rights
     }
 
     pub fn path(&self) -> PathBuf {
