@@ -36,7 +36,7 @@ impl AccessRights {
                     .and_then(|trailing| {
                         let trailing = trailing.trim_start();
                         for (name, filter) in self.filters.iter() {
-                            if trailing.starts_with(name) {
+                            if trailing.trim_start().starts_with(name) {
                                 return Some(filter.matches(mssg));
                             }
                         }
@@ -65,7 +65,7 @@ impl AccessFilter {
                                 badges.split(',')
                                     .any(|badge| {
                                         let regex = Regex::new(regex).expect("invalid regex");
-                                        regex.is_match(badge) || badge.starts_with("broadcaster")
+                                        badge.contains("broadcaster") || regex.is_match(badge)
                                     })
                             }).unwrap_or(false)
                     }
