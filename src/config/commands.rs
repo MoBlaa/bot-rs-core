@@ -4,11 +4,11 @@ use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
-use std::rc::Rc;
 
 use libloading::Library;
 
 use crate::{CORE_VERSION, Message, RUSTC_VERSION};
+use std::sync::Arc;
 
 pub trait SimpleCommand {
     /// Calls the command. Like Argv the args contain the name
@@ -145,8 +145,8 @@ pub struct CommandDeclaration {
 }
 
 pub trait CommandRegistrar {
-    fn register_command(&mut self, names: &[&str], command: Rc<dyn SimpleCommand>);
-    fn register_irc_command(&mut self, command: Rc<dyn Command>);
+    fn register_command(&mut self, names: &[&str], command: Arc<dyn SimpleCommand>);
+    fn register_irc_command(&mut self, command: Arc<dyn Command>);
 }
 
 #[macro_export]
@@ -163,8 +163,8 @@ macro_rules! export_command {
 }
 
 struct CommandProxy {
-    command: Rc<dyn SimpleCommand>,
-    _lib: Rc<Library>,
+    command: Arc<dyn SimpleCommand>,
+    _lib: Arc<Library>,
 }
 
 impl SimpleCommand for CommandProxy {
@@ -178,8 +178,8 @@ impl SimpleCommand for CommandProxy {
 }
 
 struct IrcCommandProxy {
-    command: Rc<dyn Command>,
-    _lib: Rc<Library>,
+    command: Arc<dyn Command>,
+    _lib: Arc<Library>,
 }
 
 impl Command for IrcCommandProxy {
@@ -197,7 +197,7 @@ impl Command for IrcCommandProxy {
 pub struct Commands {
     commands: HashMap<String, CommandProxy>,
     irc_commands: Vec<IrcCommandProxy>,
-    libraries: Vec<Rc<Library>>,
+    libraries: Vec<Arc<Library>>,
 }
 
 impl Commands {
@@ -241,7 +241,7 @@ impl Commands {
     /// This function should only be called with a valid path to a library file.
     unsafe fn load<P: AsRef<OsStr>>(&mut self, library_path: P) -> io::Result<()> {
         // load the library into memory
-        let library = Rc::new(Library::new(library_path)
+        let library = Arc::new(Library::new(library_path)
             .expect("failed to create new library")
         );
 
@@ -262,7 +262,7 @@ impl Commands {
         }
         trace!("RUSTC and CORE versions match!");
 
-        let mut registrar = SimpleRegistrar::new(Rc::clone(&library));
+        let mut registrar = SimpleRegistrar::new(Arc::clone(&library));
 
         (decl.register)(&mut registrar);
 
@@ -307,11 +307,11 @@ impl Command for Commands {
 struct SimpleRegistrar {
     commands: HashMap<String, CommandProxy>,
     irc_commands: Vec<IrcCommandProxy>,
-    lib: Rc<Library>,
+    lib: Arc<Library>,
 }
 
 impl SimpleRegistrar {
-    fn new(lib: Rc<Library>) -> SimpleRegistrar {
+    fn new(lib: Arc<Library>) -> SimpleRegistrar {
         SimpleRegistrar {
             lib,
             irc_commands: Vec::default(),
@@ -321,11 +321,11 @@ impl SimpleRegistrar {
 }
 
 impl CommandRegistrar for SimpleRegistrar {
-    fn register_command(&mut self, names: &[&str], command: Rc<dyn SimpleCommand>) {
+    fn register_command(&mut self, names: &[&str], command: Arc<dyn SimpleCommand>) {
         for name in names {
             let proxy = CommandProxy {
-                command: Rc::clone(&command),
-                _lib: Rc::clone(&self.lib),
+                command: Arc::clone(&command),
+                _lib: Arc::clone(&self.lib),
             };
             if let Some(old) = self.commands.insert(name.to_string(), proxy) {
                 warn!("multiple commands with name '{}'; using '{}' (overwritten '{}')", name, command.info(), old.info());
@@ -333,10 +333,10 @@ impl CommandRegistrar for SimpleRegistrar {
         }
     }
 
-    fn register_irc_command(&mut self, command: Rc<dyn Command>) {
+    fn register_irc_command(&mut self, command: Arc<dyn Command>) {
         let proxy = IrcCommandProxy {
-            command: Rc::clone(&command),
-            _lib: Rc::clone(&self.lib),
+            command: Arc::clone(&command),
+            _lib: Arc::clone(&self.lib),
         };
         self.irc_commands.push(proxy);
     }
