@@ -145,8 +145,8 @@ pub struct CommandDeclaration {
 }
 
 pub trait CommandRegistrar {
-    fn register_command(&mut self, names: &[&str], command: Arc<dyn SimpleCommand>);
-    fn register_irc_command(&mut self, command: Arc<dyn Command>);
+    fn register_command(&mut self, names: &[&str], command: Arc<dyn SimpleCommand + Send + Sync>);
+    fn register_irc_command(&mut self, command: Arc<dyn Command + Send + Sync>);
 }
 
 #[macro_export]
@@ -163,7 +163,7 @@ macro_rules! export_command {
 }
 
 struct CommandProxy {
-    command: Arc<dyn SimpleCommand>,
+    command: Arc<dyn SimpleCommand + Send + Sync>,
     _lib: Arc<Library>,
 }
 
@@ -178,7 +178,7 @@ impl SimpleCommand for CommandProxy {
 }
 
 struct IrcCommandProxy {
-    command: Arc<dyn Command>,
+    command: Arc<dyn Command + Send + Sync>,
     _lib: Arc<Library>,
 }
 
@@ -321,7 +321,7 @@ impl SimpleRegistrar {
 }
 
 impl CommandRegistrar for SimpleRegistrar {
-    fn register_command(&mut self, names: &[&str], command: Arc<dyn SimpleCommand>) {
+    fn register_command(&mut self, names: &[&str], command: Arc<dyn SimpleCommand + Send + Sync>) {
         for name in names {
             let proxy = CommandProxy {
                 command: Arc::clone(&command),
@@ -333,7 +333,7 @@ impl CommandRegistrar for SimpleRegistrar {
         }
     }
 
-    fn register_irc_command(&mut self, command: Arc<dyn Command>) {
+    fn register_irc_command(&mut self, command: Arc<dyn Command + Send + Sync>) {
         let proxy = IrcCommandProxy {
             command: Arc::clone(&command),
             _lib: Arc::clone(&self.lib),
