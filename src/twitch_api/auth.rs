@@ -255,7 +255,7 @@ impl Display for AuthRequest {
 
 #[cfg(test)]
 mod tests {
-    use crate::twitch_api::AuthRequest;
+    use crate::twitch_api::auth::AuthRequest;
 
     #[test]
     fn test_format() {
