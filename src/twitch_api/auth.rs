@@ -185,14 +185,14 @@ impl AuthRequest {
                 redirect_uri: REDIRECT_URI.to_string(),
                 scope,
                 state: rand_alphanumeric(30),
-                force_verify: false
+                force_verify: true
             },
             "code" => AuthRequest::AuthorizationCode {
                 client_id: TWITCH_CLIENT_ID.to_string(),
                 redirect_uri: REDIRECT_URI.to_string(),
                 scope,
                 state: rand_alphanumeric(30),
-                force_verify: false
+                force_verify: true
             },
             "client_credentials" => {
                 let client_secret = TWITCH_CLIENT_SECRET
