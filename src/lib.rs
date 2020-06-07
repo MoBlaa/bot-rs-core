@@ -28,6 +28,7 @@ pub const RUSTC_VERSION: &str = env!("RUSTC_VERSION");
 
 pub const ENV_JOINED_CHANNELS: &str = "BRS_JOINED_CHANNELS";
 
+#[derive(Serialize, Deserialize)]
 pub enum Message {
     Irc(IrcMessage)
 }
