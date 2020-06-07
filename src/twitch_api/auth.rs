@@ -8,7 +8,7 @@ use std::thread;
 use rocket::response::content;
 use rocket::State;
 use rocket::config::Environment;
-use crate::auth::{Authenticator, Credentials, UserInfo, ValidationError};
+use crate::auth::{Credentials, UserInfo, ValidationError};
 use chrono::{Duration, Local};
 use std::ops::Add;
 
@@ -62,8 +62,8 @@ fn auth_get(auth_req: State<AuthRequest>, auth: State<AuthMutex>, access_token: 
 #[derive(Default)]
 pub struct TwitchAuthenticator;
 
-impl Authenticator for TwitchAuthenticator {
-    fn authenticate(&self) -> Credentials {
+impl TwitchAuthenticator {
+    pub fn authenticate(&self) -> Credentials {
         let req = AuthRequest::default();
         info!("For authentication please grant Nemabot access to the Bots Twitch account at: '{}'", req.to_string());
         let auth_lock: AuthMutex = Arc::new((Mutex::new(None), Condvar::new()));
@@ -89,22 +89,22 @@ impl Authenticator for TwitchAuthenticator {
         auth.take().unwrap()
     }
 
-    fn validate(&self, cred: &Credentials) -> Result<UserInfo, ValidationError> {
-        let client = reqwest::blocking::Client::new();
+    pub async fn validate(&self, cred: &Credentials) -> Result<UserInfo, ValidationError> {
+        let client = reqwest::Client::new();
         let header = match cred {
             Credentials::OAuthToken {token} => format!("OAuth {}", token),
             token => panic!("invalid token for twitch validation: {:?}", token)
         };
 
-        let response: reqwest::blocking::Response = client.get("https://id.twitch.tv/oauth2/validate")
+        let response = client.get("https://id.twitch.tv/oauth2/validate")
             .header("Authorization", &header)
-            .send()
+            .send().await
             .expect("validation request failed");
         if !response.status().is_success() {
             error!("validation request failed: {}", response.status());
             return Err(ValidationError::Invalid);
         }
-        let body: String = response.text()
+        let body: String = response.text().await
             .expect("invalid response body");
         let body: TwitchValidation = serde_json::from_str(&body).unwrap();
         if body.client_id != TWITCH_CLIENT_ID {

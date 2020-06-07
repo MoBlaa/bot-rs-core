@@ -65,6 +65,8 @@ pub enum ValidationError {
     BadClientId
 }
 
+/// Deprecated as traits can't contain async functions currently.
+#[deprecated]
 pub trait Authenticator {
     fn authenticate(&self) -> Credentials;
     fn validate(&self, cred: &Credentials) -> Result<UserInfo, ValidationError>;
