@@ -1,14 +1,16 @@
 use core::fmt;
 use std::{fs, io};
-use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
+use std::sync::Arc;
 
+use futures::{SinkExt, StreamExt};
+use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 use libloading::Library;
 
 use crate::{CORE_VERSION, Message, RUSTC_VERSION};
-use std::sync::Arc;
+use tokio::task::JoinHandle;
 
 pub trait SimpleCommand {
     /// Calls the command. Like Argv the args contain the name
@@ -19,13 +21,46 @@ pub trait SimpleCommand {
 }
 
 pub trait Command {
-    fn call(&self, message: &Message) -> Result<Vec<Message>, InvocationError>;
+    fn call(&self, message: Message) -> Result<Vec<Message>, InvocationError>;
 
     fn info(&self) -> String;
 }
 
+pub trait AsyncCommand {
+    fn stream(&'static self, input: UnboundedReceiver<Message>, output: UnboundedSender<Message>) -> Option<JoinHandle<()>>;
+
+    fn info(&self) -> String;
+}
+
+#[macro_export]
+macro_rules! implement_async {
+    ($type:ty) => {
+        use futures::{SinkExt, StreamExt};
+
+        impl $crate::AsyncCommand for $type {
+            fn stream(&'static self, mut input: futures::channel::mpsc::UnboundedReceiver<Message>, output: futures::channel::mpsc::UnboundedSender<Message>) -> Option<tokio::task::JoinHandle<()>> {
+                Some(tokio::spawn(async move {
+                    while let Some(msg) = input.next().await {
+                        match self.call(msg) {
+                            Ok(mssgs) => for msg in mssgs {
+                                output.clone().send(msg).await.unwrap();
+                            },
+                            Err(why) => error!("Error while calling command: {}", why)
+                        }
+                    }
+                }))
+            }
+
+            fn info(&self) -> String {
+                Command::info(self)
+            }
+        }
+    }
+}
+
 /// Can be used to generate implementation of [IrcCommand] for traits already
 /// implementing the [Command] trait.
+/// TODO: Remove or fix this implementation
 #[macro_export]
 macro_rules! implement_irc {
     ($type:ty) => {
@@ -145,8 +180,7 @@ pub struct CommandDeclaration {
 }
 
 pub trait CommandRegistrar {
-    fn register_command(&mut self, names: &[&str], command: Arc<dyn SimpleCommand + Send + Sync>);
-    fn register_irc_command(&mut self, command: Arc<dyn Command + Send + Sync>);
+    fn register(&mut self, command: Arc<dyn AsyncCommand + Send + Sync>);
 }
 
 #[macro_export]
@@ -163,28 +197,14 @@ macro_rules! export_command {
 }
 
 struct CommandProxy {
-    command: Arc<dyn SimpleCommand + Send + Sync>,
+    command: Arc<dyn AsyncCommand + Send + Sync>,
     _lib: Arc<Library>,
 }
 
-impl SimpleCommand for CommandProxy {
-    fn call(&self, args: &[&str]) -> Result<Vec<String>, InvocationError> {
-        self.command.call(args)
-    }
+impl AsyncCommand for CommandProxy {
 
-    fn info(&self) -> String {
-        self.command.info()
-    }
-}
-
-struct IrcCommandProxy {
-    command: Arc<dyn Command + Send + Sync>,
-    _lib: Arc<Library>,
-}
-
-impl Command for IrcCommandProxy {
-    fn call(&self, message: &Message) -> Result<Vec<Message>, InvocationError> {
-        self.command.call(message)
+    fn stream(&'static self, input: UnboundedReceiver<Message>, output: UnboundedSender<Message>) -> Option<JoinHandle<()>>{
+        self.command.stream(input, output)
     }
 
     fn info(&self) -> String {
@@ -195,16 +215,14 @@ impl Command for IrcCommandProxy {
 // Contains all loaded Commands
 #[derive(Default)]
 pub struct Commands {
-    commands: HashMap<String, CommandProxy>,
-    irc_commands: Vec<IrcCommandProxy>,
+    commands: Vec<CommandProxy>,
     libraries: Vec<Arc<Library>>,
 }
 
 impl Commands {
     pub fn new() -> Commands {
         Commands {
-            commands: HashMap::new(),
-            irc_commands: Vec::new(),
+            commands: Vec::new(),
             libraries: Vec::new(),
         }
     }
@@ -268,7 +286,6 @@ impl Commands {
 
         // add all loaded plugins to the functions map
         self.commands.extend(registrar.commands);
-        self.irc_commands.extend(registrar.irc_commands);
         // and make sure Commands keeps a reference to the library
         self.libraries.push(library);
 
@@ -276,27 +293,23 @@ impl Commands {
     }
 }
 
-impl SimpleCommand for Commands {
-    fn call(&self, arguments: &[&str]) -> Result<Vec<String>, InvocationError> {
-        self.commands
-            .get(arguments[0])
-            .ok_or_else(|| format!("\"{}\" not found", &arguments[0]))?
-            .call(arguments)
-    }
 
-    fn info(&self) -> String {
-        format!("Bot-RS Core {}", CORE_VERSION)
-    }
-}
-
-impl Command for Commands {
-    fn call(&self, message: &Message) -> Result<Vec<Message>, InvocationError> {
-        let mut result = Vec::new();
-        for cmd in self.irc_commands.iter() {
-            let mut res = cmd.call(message)?;
-            result.append(&mut res);
+impl AsyncCommand for Commands {
+    fn stream(&'static self, mut input: UnboundedReceiver<Message>, output: UnboundedSender<Message>) -> Option<JoinHandle<()>> {
+        let mut senders = Vec::with_capacity(self.commands.len());
+        let mut cmd_outputs = Vec::with_capacity(self.commands.len());
+        for cmd in self.commands.iter() {
+            let (sender, receiver) = unbounded();
+            senders.push(sender);
+            cmd_outputs.push(cmd.stream(receiver, output.clone()));
         }
-        Ok(result)
+        Some(tokio::spawn(async move {
+            while let Some(msg) = input.next().await {
+                for mut sender in senders.iter() {
+                    sender.send(msg.clone()).await.unwrap();
+                }
+            }
+        }))
     }
 
     fn info(&self) -> String {
@@ -305,8 +318,7 @@ impl Command for Commands {
 }
 
 struct SimpleRegistrar {
-    commands: HashMap<String, CommandProxy>,
-    irc_commands: Vec<IrcCommandProxy>,
+    commands: Vec<CommandProxy>,
     lib: Arc<Library>,
 }
 
@@ -314,30 +326,17 @@ impl SimpleRegistrar {
     fn new(lib: Arc<Library>) -> SimpleRegistrar {
         SimpleRegistrar {
             lib,
-            irc_commands: Vec::default(),
-            commands: HashMap::default(),
+            commands: Vec::new(),
         }
     }
 }
 
 impl CommandRegistrar for SimpleRegistrar {
-    fn register_command(&mut self, names: &[&str], command: Arc<dyn SimpleCommand + Send + Sync>) {
-        for name in names {
-            let proxy = CommandProxy {
-                command: Arc::clone(&command),
-                _lib: Arc::clone(&self.lib),
-            };
-            if let Some(old) = self.commands.insert(name.to_string(), proxy) {
-                warn!("multiple commands with name '{}'; using '{}' (overwritten '{}')", name, command.info(), old.info());
-            }
-        }
-    }
-
-    fn register_irc_command(&mut self, command: Arc<dyn Command + Send + Sync>) {
-        let proxy = IrcCommandProxy {
+    fn register(&mut self, command: Arc<dyn AsyncCommand + Send + Sync>) {
+        let proxy = CommandProxy {
             command: Arc::clone(&command),
             _lib: Arc::clone(&self.lib),
         };
-        self.irc_commands.push(proxy);
+        self.commands.push(proxy);
     }
 }
