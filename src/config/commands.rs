@@ -5,10 +5,7 @@ use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use futures::{SinkExt, StreamExt};
-use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 use libloading::Library;
-use tokio::sync::Mutex;
 
 use async_trait::async_trait;
 
@@ -22,45 +19,11 @@ pub trait SimpleCommand {
     fn info(&self) -> String;
 }
 
-pub trait Command {
-    fn call(&self, message: Message) -> Result<Vec<Message>, InvocationError>;
+#[async_trait]
+pub trait Command: Send + Sync {
+    async fn call(&self, message: Message) -> Result<Vec<Message>, InvocationError>;
 
     fn info(&self) -> String;
-}
-
-#[async_trait]
-pub trait AsyncCommand: Send + Sync {
-    async fn stream(&mut self, input: UnboundedReceiver<Message>, output: UnboundedSender<Message>);
-
-    async fn info(&self) -> String;
-}
-
-#[macro_export]
-macro_rules! implement_async {
-    ($type:ty) => {
-        use futures::{SinkExt, StreamExt};
-        use async_trait::async_trait;
-
-        #[async_trait]
-        impl $crate::AsyncCommand for $type {
-            async fn stream(&mut self, mut input: futures::channel::mpsc::UnboundedReceiver<Message>, output: futures::channel::mpsc::UnboundedSender<Message>) {
-                debug!("[{}] Waiting for next message...", Command::info(self));
-                while let Some(msg) = input.next().await {
-                    debug!("[{}] Received message: {}", Command::info(self), msg);
-                    match self.call(msg) {
-                        Ok(mssgs) => for msg in mssgs {
-                            output.clone().send(msg).await.unwrap();
-                        },
-                        Err(why) => error!("Error while calling command: {}", why)
-                    }
-                }
-            }
-
-            async fn info(&self) -> String {
-                Command::info(self)
-            }
-        }
-    }
 }
 
 /// Can be used to generate implementation of [IrcCommand] for traits already
@@ -185,7 +148,7 @@ pub struct CommandDeclaration {
 }
 
 pub trait CommandRegistrar {
-    fn register(&mut self, command: Arc<Mutex<Box<dyn AsyncCommand>>>);
+    fn register(&mut self, command: Arc<dyn Command>);
 }
 
 #[macro_export]
@@ -202,18 +165,18 @@ macro_rules! export_command {
 }
 
 struct CommandProxy {
-    command: Arc<Mutex<Box<dyn AsyncCommand>>>,
+    command: Arc<dyn Command>,
     _lib: Arc<Library>,
 }
 
 #[async_trait]
-impl AsyncCommand for CommandProxy {
-    async fn stream(&mut self, input: UnboundedReceiver<Message>, output: UnboundedSender<Message>) {
-        self.command.lock().await.stream(input, output).await;
+impl Command for CommandProxy {
+    async fn call(&self, message: Message) -> Result<Vec<Message>, InvocationError> {
+        self.command.call(message).await
     }
 
-    async fn info(&self) -> String {
-        self.command.lock().await.info().await
+    fn info(&self) -> String {
+        self.command.info()
     }
 }
 
@@ -299,28 +262,17 @@ impl Commands {
 }
 
 #[async_trait]
-impl AsyncCommand for Commands {
-    async fn stream(&mut self, mut input: UnboundedReceiver<Message>, output: UnboundedSender<Message>) {
-        let mut senders = Vec::with_capacity(self.commands.len());
-        for mut cmd in self.commands.iter_mut() {
-            let (sender, receiver) = unbounded();
-            senders.push(sender);
-            tokio::spawn(async move {
-                // TODO: Cmd has to be 'static for this to work
-                cmd.stream(receiver, output.clone()).await;
-            });
+impl Command for Commands {
+    async fn call(&self, message: Message) -> Result<Vec<Message>, InvocationError> {
+        let mut res = Vec::new();
+        for command in self.commands.iter() {
+            let results = command.call(message.clone()).await?;
+            res.extend(results);
         }
-        tokio::spawn(async move {
-            while let Some(msg) = input.next().await {
-                debug!("[Commands] Delegating message: {}", msg);
-                for mut sender in senders.iter() {
-                    sender.send(msg.clone()).await.expect("failed to delegate message");
-                }
-            }
-        });
+        Ok(res)
     }
 
-    async fn info(&self) -> String {
+    fn info(&self) -> String {
         format!("Bot-RS Core {}", CORE_VERSION)
     }
 }
@@ -340,7 +292,7 @@ impl SimpleRegistrar {
 }
 
 impl CommandRegistrar for SimpleRegistrar {
-    fn register(&mut self, command: Arc<Mutex<Box<dyn AsyncCommand>>>) {
+    fn register(&mut self, command: Arc<dyn Command>) {
         let proxy = CommandProxy {
             command: Arc::clone(&command),
             _lib: Arc::clone(&self.lib),
