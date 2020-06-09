@@ -10,7 +10,8 @@ use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 use libloading::Library;
 
 use crate::{CORE_VERSION, Message, RUSTC_VERSION};
-use tokio::task::JoinHandle;
+use async_trait::async_trait;
+use tokio::sync::Mutex;
 
 pub trait SimpleCommand {
     /// Calls the command. Like Argv the args contain the name
@@ -26,32 +27,33 @@ pub trait Command {
     fn info(&self) -> String;
 }
 
-pub trait AsyncCommand {
-    fn stream(&'static self, input: UnboundedReceiver<Message>, output: UnboundedSender<Message>) -> Option<JoinHandle<()>>;
+#[async_trait]
+pub trait AsyncCommand: Send + Sync {
+    async fn stream(&mut self, input: UnboundedReceiver<Message>, output: UnboundedSender<Message>);
 
-    fn info(&self) -> String;
+    async fn info(&self) -> String;
 }
 
 #[macro_export]
 macro_rules! implement_async {
     ($type:ty) => {
         use futures::{SinkExt, StreamExt};
+        use async_trait::async_trait;
 
+        #[async_trait]
         impl $crate::AsyncCommand for $type {
-            fn stream(&'static self, mut input: futures::channel::mpsc::UnboundedReceiver<Message>, output: futures::channel::mpsc::UnboundedSender<Message>) -> Option<tokio::task::JoinHandle<()>> {
-                Some(tokio::spawn(async move {
-                    while let Some(msg) = input.next().await {
-                        match self.call(msg) {
-                            Ok(mssgs) => for msg in mssgs {
-                                output.clone().send(msg).await.unwrap();
-                            },
-                            Err(why) => error!("Error while calling command: {}", why)
-                        }
+            async fn stream(&mut self, mut input: futures::channel::mpsc::UnboundedReceiver<Message>, output: futures::channel::mpsc::UnboundedSender<Message>) {
+                while let Some(msg) = input.next().await {
+                    match self.call(msg) {
+                        Ok(mssgs) => for msg in mssgs {
+                            output.clone().send(msg).await.unwrap();
+                        },
+                        Err(why) => error!("Error while calling command: {}", why)
                     }
-                }))
+                }
             }
 
-            fn info(&self) -> String {
+            async fn info(&self) -> String {
                 Command::info(self)
             }
         }
@@ -180,7 +182,7 @@ pub struct CommandDeclaration {
 }
 
 pub trait CommandRegistrar {
-    fn register(&mut self, command: Arc<dyn AsyncCommand + Send + Sync>);
+    fn register(&mut self, command: Arc<Mutex<Box<dyn AsyncCommand>>>);
 }
 
 #[macro_export]
@@ -197,18 +199,18 @@ macro_rules! export_command {
 }
 
 struct CommandProxy {
-    command: Arc<dyn AsyncCommand + Send + Sync>,
+    command: Arc<Mutex<Box<dyn AsyncCommand>>>,
     _lib: Arc<Library>,
 }
 
+#[async_trait]
 impl AsyncCommand for CommandProxy {
-
-    fn stream(&'static self, input: UnboundedReceiver<Message>, output: UnboundedSender<Message>) -> Option<JoinHandle<()>>{
-        self.command.stream(input, output)
+    async fn stream(&mut self, input: UnboundedReceiver<Message>, output: UnboundedSender<Message>) {
+        self.command.lock().await.stream(input, output).await;
     }
 
-    fn info(&self) -> String {
-        self.command.info()
+    async fn info(&self) -> String {
+        self.command.lock().await.info().await
     }
 }
 
@@ -293,26 +295,26 @@ impl Commands {
     }
 }
 
-
+#[async_trait]
 impl AsyncCommand for Commands {
-    fn stream(&'static self, mut input: UnboundedReceiver<Message>, output: UnboundedSender<Message>) -> Option<JoinHandle<()>> {
+    async fn stream(&mut self, mut input: UnboundedReceiver<Message>, output: UnboundedSender<Message>) {
         let mut senders = Vec::with_capacity(self.commands.len());
         let mut cmd_outputs = Vec::with_capacity(self.commands.len());
-        for cmd in self.commands.iter() {
+        for cmd in self.commands.iter_mut() {
             let (sender, receiver) = unbounded();
             senders.push(sender);
             cmd_outputs.push(cmd.stream(receiver, output.clone()));
         }
-        Some(tokio::spawn(async move {
+        tokio::spawn(async move {
             while let Some(msg) = input.next().await {
                 for mut sender in senders.iter() {
                     sender.send(msg.clone()).await.unwrap();
                 }
             }
-        }))
+        }).await.expect("failed to wait for task to finish");
     }
 
-    fn info(&self) -> String {
+    async fn info(&self) -> String {
         format!("Bot-RS Core {}", CORE_VERSION)
     }
 }
@@ -332,7 +334,7 @@ impl SimpleRegistrar {
 }
 
 impl CommandRegistrar for SimpleRegistrar {
-    fn register(&mut self, command: Arc<dyn AsyncCommand + Send + Sync>) {
+    fn register(&mut self, command: Arc<Mutex<Box<dyn AsyncCommand>>>) {
         let proxy = CommandProxy {
             command: Arc::clone(&command),
             _lib: Arc::clone(&self.lib),
