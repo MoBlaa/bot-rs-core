@@ -8,10 +8,11 @@ use std::sync::Arc;
 use futures::{SinkExt, StreamExt};
 use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 use libloading::Library;
+use tokio::sync::Mutex;
+
+use async_trait::async_trait;
 
 use crate::{CORE_VERSION, Message, RUSTC_VERSION};
-use async_trait::async_trait;
-use tokio::sync::Mutex;
 
 pub trait SimpleCommand {
     /// Calls the command. Like Argv the args contain the name
@@ -43,7 +44,9 @@ macro_rules! implement_async {
         #[async_trait]
         impl $crate::AsyncCommand for $type {
             async fn stream(&mut self, mut input: futures::channel::mpsc::UnboundedReceiver<Message>, output: futures::channel::mpsc::UnboundedSender<Message>) {
+                debug!("[{}] Waiting for next message...", Command::info(self));
                 while let Some(msg) = input.next().await {
+                    debug!("[{}] Received message: {}", Command::info(self), msg);
                     match self.call(msg) {
                         Ok(mssgs) => for msg in mssgs {
                             output.clone().send(msg).await.unwrap();
@@ -299,19 +302,22 @@ impl Commands {
 impl AsyncCommand for Commands {
     async fn stream(&mut self, mut input: UnboundedReceiver<Message>, output: UnboundedSender<Message>) {
         let mut senders = Vec::with_capacity(self.commands.len());
-        let mut cmd_outputs = Vec::with_capacity(self.commands.len());
-        for cmd in self.commands.iter_mut() {
+        for mut cmd in self.commands.iter_mut() {
             let (sender, receiver) = unbounded();
             senders.push(sender);
-            cmd_outputs.push(cmd.stream(receiver, output.clone()));
+            tokio::spawn(async move {
+                // TODO: Cmd has to be 'static for this to work
+                cmd.stream(receiver, output.clone()).await;
+            });
         }
         tokio::spawn(async move {
             while let Some(msg) = input.next().await {
+                debug!("[Commands] Delegating message: {}", msg);
                 for mut sender in senders.iter() {
-                    sender.send(msg.clone()).await.unwrap();
+                    sender.send(msg.clone()).await.expect("failed to delegate message");
                 }
             }
-        }).await.expect("failed to wait for task to finish");
+        });
     }
 
     async fn info(&self) -> String {
