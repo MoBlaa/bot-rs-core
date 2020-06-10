@@ -13,103 +13,11 @@ use futures::future::join_all;
 
 use crate::{CORE_VERSION, Message, RUSTC_VERSION};
 
-pub trait SimpleCommand {
-    /// Calls the command. Like Argv the args contain the name
-    /// of the command as first element.
-    fn call(&self, args: &[&str]) -> Result<Vec<String>, InvocationError>;
-
-    fn info(&self) -> String;
-}
-
 #[async_trait]
 pub trait Command: Send + Sync {
     async fn call(&self, message: Message) -> Result<Vec<Message>, InvocationError>;
 
     fn info(&self) -> String;
-}
-
-/// Can be used to generate implementation of [IrcCommand] for traits already
-/// implementing the [Command] trait.
-/// TODO: Remove or fix this implementation
-#[macro_export]
-macro_rules! implement_irc {
-    ($type:ty) => {
-        use irc_rust::message::Message;
-        use bot_rs_core::Profile;
-
-        #[doc(hidden)]
-        impl $type {
-            fn extract_params<'a>(&self, invocation: &'a str) -> Vec<&'a str> {
-                if !invocation.starts_with('!') {
-                    panic!("invoked without prefixing with `!`");
-                }
-                let mut result = Vec::new();
-                if let Some(index) = invocation.chars().position(|c| c == ' ') {
-                    let name = &invocation[1..index];
-                    result.push(name);
-                    result.extend(invocation[index + 1..].split(' ').collect::<Vec<_>>());
-                } else {
-                    let name = &invocation[1..];
-                    result.push(name);
-                }
-                result
-            }
-        }
-
-        #[doc(hidden)]
-        impl $crate::IrcCommand for $type {
-            fn call_raw(&self, message: &Message) -> Result<Vec<Message>, $crate::InvocationError> {
-                if message.command() != "PRIVMSG" {
-                    return Ok(Vec::with_capacity(0));
-                }
-                let profile: Profile = Profile::active();
-                if !profile.rights().allowed(message).unwrap_or(false) {
-                    return Ok(Vec::with_capacity(0));
-                }
-
-                let tags = message.tags()
-                    .expect("missing tags in message");
-                let sender = &tags["display-name"];
-
-                let params = match message.params() {
-                    None => {
-                        return Ok(Vec::with_capacity(0))
-                    },
-                    Some(params) => params
-                };
-                let channel = params.iter().next().expect("missing channel param");
-                let trailing = params.trailing;
-                if trailing.is_none() {
-                    return Ok(Vec::with_capacity(0));
-                }
-                let trailing = trailing.unwrap().trim();
-                if !trailing.starts_with('!') {
-                    return Ok(Vec::with_capacity(0));
-                }
-                let params = $crate::IrcCommand::extract_params(self, trailing);
-
-// TODO: filter for names before invoking
-                self.call(&params)
-                    .map(|result: Vec<String>| {
-                        let mut messages = Vec::with_capacity(result.len());
-                        for result in result {
-                            let message = format!("@{}: {}", sender, result);
-                            messages.push(Message::builder()
-                            .command("PRIVMSG")
-                            .param(channel)
-                            .trailing(message.as_str())
-                            .build()
-                            );
-                        }
-                        messages
-                    })
-            }
-
-            fn info(&self) -> String {
-                Command::info(self)
-            }
-        }
-    }
 }
 
 #[derive(Debug)]
