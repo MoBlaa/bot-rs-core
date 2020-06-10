@@ -6,6 +6,9 @@ extern crate log;
 extern crate serde;
 #[macro_use]
 extern crate rocket;
+#[cfg(test)]
+#[macro_use]
+extern crate bot_rs_core_derive;
 
 pub mod twitch_api;
 pub mod auth;

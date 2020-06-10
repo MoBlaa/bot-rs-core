@@ -12,10 +12,25 @@ use async_trait::async_trait;
 use futures::future::join_all;
 
 use crate::{CORE_VERSION, Message, RUSTC_VERSION};
+use futures::channel::mpsc::{UnboundedSender, UnboundedReceiver};
 
+/// Handles single command invocations immediately returning their result.
 #[async_trait]
 pub trait Command: Send + Sync {
     async fn call(&self, message: Message) -> Result<Vec<Message>, InvocationError>;
+
+    fn info(&self) -> String;
+}
+
+/// Allows users to create an asynchronously running stream. This allows commands
+/// to send messages to the output without the need of a command invocation.
+/// TODO
+///     - Implement Derive allowing simple implementation of this interface through a Command implementation
+#[async_trait]
+pub trait PipedCommand: Command {
+    /// Create a new Stream sending messages into [output] and receiving messages to
+    /// the returned sender.
+    async fn stream(&self, input: UnboundedReceiver<Message>, output: UnboundedSender<Vec<Message>>) -> Result<(), InvocationError>;
 
     fn info(&self) -> String;
 }
@@ -215,5 +230,34 @@ impl CommandRegistrar for SimpleRegistrar {
             _lib: Arc::clone(&self.lib),
         };
         self.commands.push(proxy);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Command, PipedCommand, Message, InvocationError};
+    use async_trait::async_trait;
+
+    #[derive(PipedCommand)]
+    struct TestCommand;
+
+    #[async_trait]
+    impl Command for TestCommand {
+        async fn call(&self, _message: Message) -> Result<Vec<Message>, InvocationError> {
+            println!("Test command called!");
+            Ok(Vec::new())
+        }
+
+        fn info(&self) -> String {
+            "Test Command".to_string()
+        }
+    }
+
+    #[tokio::test]
+    async fn test_compile() -> Result<(), InvocationError> {
+        let message = Message::Irc(irc_rust::message::Message::new("CMD :test".to_string()));
+        let result = TestCommand.call(message).await?;
+        assert!(result.is_empty());
+        Ok(())
     }
 }
