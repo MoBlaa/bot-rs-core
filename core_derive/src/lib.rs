@@ -13,8 +13,6 @@ pub fn piped_command_derive(input: TokenStream) -> TokenStream {
 fn impl_piped_command(ast: &syn::DeriveInput) -> TokenStream {
     let name = &ast.ident;
     let gen = quote! {
-        use futures::{SinkExt, StreamExt};
-
         #[async_trait]
         impl PipedCommand for #name {
             async fn stream(
@@ -22,9 +20,9 @@ fn impl_piped_command(ast: &syn::DeriveInput) -> TokenStream {
                 mut input: futures::channel::mpsc::UnboundedReceiver<Message>,
                 mut output: futures::channel::mpsc::UnboundedSender<Vec<Message>>)
             -> Result<(), InvocationError> {
-                    while let Some(msg) = input.next().await {
+                    while let Some(msg) = futures::StreamExt::next(&mut input).await {
                         let results = self.call(msg).await?;
-                        output.send(results).await.expect("failed to send results to output");
+                        futures::SinkExt::send(&mut output, results).await.expect("failed to send results to output");
                     }
                     Ok(())
             }

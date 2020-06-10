@@ -12,7 +12,9 @@ use async_trait::async_trait;
 use futures::future::join_all;
 
 use crate::{CORE_VERSION, Message, RUSTC_VERSION};
-use futures::channel::mpsc::{UnboundedSender, UnboundedReceiver};
+use futures::channel::mpsc::{UnboundedSender, UnboundedReceiver, unbounded};
+use tokio::stream::StreamExt;
+use futures::SinkExt;
 
 /// Handles single command invocations immediately returning their result.
 #[async_trait]
@@ -73,7 +75,7 @@ pub struct CommandDeclaration {
 }
 
 pub trait CommandRegistrar {
-    fn register(&mut self, command: Arc<dyn Command>);
+    fn register(&mut self, command: Arc<dyn PipedCommand>);
 }
 
 #[macro_export]
@@ -90,7 +92,7 @@ macro_rules! export_command {
 }
 
 struct CommandProxy {
-    command: Arc<dyn Command>,
+    command: Arc<dyn PipedCommand>,
     _lib: Arc<Library>,
 }
 
@@ -101,7 +103,18 @@ impl Command for CommandProxy {
     }
 
     fn info(&self) -> String {
-        self.command.info()
+        Command::info(self.command.as_ref())
+    }
+}
+
+#[async_trait]
+impl PipedCommand for CommandProxy {
+    async fn stream(&self, input: UnboundedReceiver<Message>, output: UnboundedSender<Vec<Message>>) -> Result<(), InvocationError> {
+        self.command.stream(input, output).await
+    }
+
+    fn info(&self) -> String {
+        Command::info(self)
     }
 }
 
@@ -157,10 +170,14 @@ impl Commands {
         );
 
         // get a pointer to the plugin_declaration symbol.
-        let decl = library
-            .get::<*mut CommandDeclaration>(b"command_declaration\0")
-            .expect("failed to get command_declaration")
-            .read();
+        let decl = match library
+            .get::<*mut CommandDeclaration>(b"command_declaration\0") {
+            Ok(decl) => decl.read(),
+            Err(err) => {
+                warn!("failed to load command_declaration skipping; {}", err);
+                return Ok(());
+            }
+        };
 
         // version checks to prevent accidental ABI incompatibilities
         if decl.rustc_version != RUSTC_VERSION
@@ -209,6 +226,38 @@ impl Command for Commands {
     }
 }
 
+#[async_trait]
+impl PipedCommand for Commands {
+    async fn stream(&self,
+                    mut input: UnboundedReceiver<Message>,
+                    output: UnboundedSender<Vec<Message>>) -> Result<(), InvocationError> {
+        let mut channel_inputs = Vec::with_capacity(self.commands.len());
+        let mut streams = Vec::with_capacity(self.commands.len());
+        for cmd in self.commands.iter() {
+            let (write, read) = unbounded();
+            let stream = cmd.stream(read, output.clone());
+            channel_inputs.push(write);
+            streams.push(stream);
+        }
+        tokio::spawn(async move {
+            while let Some(msg) = input.next().await {
+                let mut sends = Vec::with_capacity(channel_inputs.len());
+                for sender in channel_inputs.iter_mut() {
+                    sends.push(sender.send(msg.clone()));
+                }
+                // Actually send to all channels/commands
+                join_all(sends).await;
+            }
+        });
+        join_all(streams).await;
+        Ok(())
+    }
+
+    fn info(&self) -> String {
+        Command::info(self)
+    }
+}
+
 struct SimpleRegistrar {
     commands: Vec<CommandProxy>,
     lib: Arc<Library>,
@@ -224,7 +273,7 @@ impl SimpleRegistrar {
 }
 
 impl CommandRegistrar for SimpleRegistrar {
-    fn register(&mut self, command: Arc<dyn Command>) {
+    fn register(&mut self, command: Arc<dyn PipedCommand>) {
         let proxy = CommandProxy {
             command: Arc::clone(&command),
             _lib: Arc::clone(&self.lib),
