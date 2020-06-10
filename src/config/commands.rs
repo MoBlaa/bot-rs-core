@@ -9,6 +9,8 @@ use libloading::Library;
 
 use async_trait::async_trait;
 
+use futures::future::join_all;
+
 use crate::{CORE_VERSION, Message, RUSTC_VERSION};
 
 pub trait SimpleCommand {
@@ -264,10 +266,17 @@ impl Commands {
 #[async_trait]
 impl Command for Commands {
     async fn call(&self, message: Message) -> Result<Vec<Message>, InvocationError> {
-        let mut res = Vec::new();
+        let mut futs = Vec::new();
         for command in self.commands.iter() {
-            let results = command.call(message.clone()).await?;
-            res.extend(results);
+            futs.push(command.call(message.clone()));
+        }
+
+        // Join the futures so they are actually performed
+        let joined = join_all(futs).await;
+
+        let mut res = Vec::new();
+        for result in joined {
+            res.extend(result?);
         }
         Ok(res)
     }

@@ -4,10 +4,8 @@
 extern crate log;
 #[macro_use]
 extern crate serde;
-extern crate serde_json;
 #[macro_use]
 extern crate rocket;
-extern crate chrono;
 
 pub mod twitch_api;
 pub mod auth;
