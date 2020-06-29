@@ -33,8 +33,6 @@ pub trait PipedCommand: Command {
     /// Create a new Stream sending messages into [output] and receiving messages to
     /// the returned sender.
     async fn stream(&self, input: UnboundedReceiver<Message>, output: UnboundedSender<Vec<Message>>) -> Result<(), InvocationError>;
-
-    fn info(&self) -> String;
 }
 
 #[derive(Debug)]
@@ -112,10 +110,6 @@ impl PipedCommand for CommandProxy {
     async fn stream(&self, input: UnboundedReceiver<Message>, output: UnboundedSender<Vec<Message>>) -> Result<(), InvocationError> {
         self.command.stream(input, output).await
     }
-
-    fn info(&self) -> String {
-        Command::info(self)
-    }
 }
 
 // Contains all loaded Commands
@@ -142,21 +136,25 @@ impl Commands {
         }
 
         for entry in fs::read_dir(libraries_root)? {
-            let entry = entry?.path();
-            if entry.is_file() {
-                if let Some(extension) = entry.extension() {
-                    if extension == "so" {
-                        debug!("Loading plugin-file {}", entry.to_str().unwrap());
-                        unsafe { self.load(entry)? };
-                    }
-                }
-            }
+            self.load_file(entry?.path())?;
         }
 
         if self.libraries.is_empty() {
             warn!("No plugins loaded!");
         }
 
+        Ok(())
+    }
+
+    pub fn load_file(&mut self, entry: PathBuf) -> io::Result<()> {
+        if entry.is_file() {
+            if let Some(extension) = entry.extension() {
+                if extension == "so" {
+                    debug!("Loading plugin-file {}", entry.to_str().unwrap());
+                    unsafe { self.load(entry)? };
+                }
+            }
+        }
         Ok(())
     }
 
@@ -251,10 +249,6 @@ impl PipedCommand for Commands {
         });
         join_all(streams).await;
         Ok(())
-    }
-
-    fn info(&self) -> String {
-        Command::info(self)
     }
 }
 

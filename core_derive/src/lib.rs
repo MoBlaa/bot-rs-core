@@ -26,10 +26,6 @@ fn impl_piped_command(ast: &syn::DeriveInput) -> TokenStream {
                     }
                     Ok(())
             }
-
-            fn info(&self) -> String {
-                Command::info(self)
-            }
         }
     };
     gen.into()
