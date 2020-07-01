@@ -232,6 +232,10 @@ impl Profiles {
         }
         Ok(())
     }
+
+    pub fn iter(&self) -> std::collections::hash_map::Iter<OsString, Profile> {
+        self.profiles.iter()
+    }
 }
 
 pub struct Configs;
