@@ -113,7 +113,7 @@ macro_rules! export_command {
     }
 }
 
-struct PluginProxy {
+pub struct PluginProxy {
     command: Arc<dyn StreamablePlugin>,
     _lib: Arc<Library>,
 }
@@ -151,6 +151,10 @@ impl Plugins {
         }
     }
 
+    pub fn iter(&self) -> std::slice::Iter<PluginProxy> {
+        self.commands.iter()
+    }
+
     pub fn load_dir(&mut self, libraries_root: PathBuf) -> io::Result<()> {
         if !libraries_root.is_dir() {
             return Err(io::Error::new(
@@ -171,13 +175,19 @@ impl Plugins {
     }
 
     pub fn load_file(&mut self, entry: PathBuf) -> io::Result<()> {
-        if entry.is_file() {
+        if entry.exists() && entry.is_file() {
             if let Some(extension) = entry.extension() {
                 if extension == "so" {
                     debug!("Loading plugin-file {}", entry.to_str().unwrap());
                     unsafe { self.load(entry)? };
+                } else {
+                    panic!("Unsupported extension: {}", extension.to_string_lossy());
                 }
+            } else {
+                panic!("Invalid extension!");
             }
+        } else {
+            panic!("Doesn't exist or isn't a file!");
         }
         Ok(())
     }
@@ -248,7 +258,7 @@ impl Plugin for Plugins {
             name: "Bot-RS Core".to_string(),
             version: CORE_VERSION.to_string(),
             authors: env!("CARGO_PKG_AUTHORS").to_string(),
-            repo: Some(env!("CARGO_PKG_REPOSITORY").to_string()),
+            repo: option_env!("CARGO_PKG_REPOSITORY").map(|repo| repo.to_string()),
             commands: vec![]
         }
     }
