@@ -16,20 +16,44 @@ use futures::channel::mpsc::{UnboundedSender, UnboundedReceiver, unbounded};
 use tokio::stream::StreamExt;
 use futures::SinkExt;
 
+/// Contains information about a plugin to identify the supported commands, author information, etc.
+pub struct PluginInfo {
+    pub name: String,
+    pub version: String,
+    pub authors: String,
+    pub repo: Option<String>,
+    pub commands: Vec<String>
+}
+
+impl Display for PluginInfo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{} v{}", self.name, self.version)?;
+        if let Some(ref repo) = self.repo {
+            write!(f, " [{}]", repo)?;
+        }
+        writeln!(f)?;
+        writeln!(f, "Authors: {}", self.authors)?;
+        if self.commands.is_empty() {
+            write!(f, "Commands: None")?;
+        } else {
+            write!(f, "Commands: [{}]", self.commands.join(", "))?;
+        }
+        Ok(())
+    }
+}
+
 /// Handles single command invocations immediately returning their result.
 #[async_trait]
-pub trait Command: Send + Sync {
+pub trait Plugin: Send + Sync {
     async fn call(&self, message: Message) -> Result<Vec<Message>, InvocationError>;
 
-    fn info(&self) -> String;
+    fn info(&self) -> PluginInfo;
 }
 
 /// Allows users to create an asynchronously running stream. This allows commands
 /// to send messages to the output without the need of a command invocation.
-/// TODO
-///     - Implement Derive allowing simple implementation of this interface through a Command implementation
 #[async_trait]
-pub trait PipedCommand: Command {
+pub trait StreamablePlugin: Plugin {
     /// Create a new Stream sending messages into [output] and receiving messages to
     /// the returned sender.
     async fn stream(&self, input: UnboundedReceiver<Message>, output: UnboundedSender<Vec<Message>>) -> Result<(), InvocationError>;
@@ -73,7 +97,7 @@ pub struct CommandDeclaration {
 }
 
 pub trait CommandRegistrar {
-    fn register(&mut self, command: Arc<dyn PipedCommand>);
+    fn register(&mut self, command: Arc<dyn StreamablePlugin>);
 }
 
 #[macro_export]
@@ -89,39 +113,39 @@ macro_rules! export_command {
     }
 }
 
-struct CommandProxy {
-    command: Arc<dyn PipedCommand>,
+struct PluginProxy {
+    command: Arc<dyn StreamablePlugin>,
     _lib: Arc<Library>,
 }
 
 #[async_trait]
-impl Command for CommandProxy {
+impl Plugin for PluginProxy {
     async fn call(&self, message: Message) -> Result<Vec<Message>, InvocationError> {
         self.command.call(message).await
     }
 
-    fn info(&self) -> String {
-        Command::info(self.command.as_ref())
+    fn info(&self) -> PluginInfo {
+        self.command.info()
     }
 }
 
 #[async_trait]
-impl PipedCommand for CommandProxy {
+impl StreamablePlugin for PluginProxy {
     async fn stream(&self, input: UnboundedReceiver<Message>, output: UnboundedSender<Vec<Message>>) -> Result<(), InvocationError> {
         self.command.stream(input, output).await
     }
 }
 
-// Contains all loaded Commands
+// Contains all loaded Plugins.
 #[derive(Default)]
-pub struct Commands {
-    commands: Vec<CommandProxy>,
+pub struct Plugins {
+    commands: Vec<PluginProxy>,
     libraries: Vec<Arc<Library>>,
 }
 
-impl Commands {
-    pub fn new() -> Commands {
-        Commands {
+impl Plugins {
+    pub fn new() -> Plugins {
+        Plugins {
             commands: Vec::new(),
             libraries: Vec::new(),
         }
@@ -202,7 +226,7 @@ impl Commands {
 }
 
 #[async_trait]
-impl Command for Commands {
+impl Plugin for Plugins {
     async fn call(&self, message: Message) -> Result<Vec<Message>, InvocationError> {
         let mut futs = Vec::new();
         for command in self.commands.iter() {
@@ -219,13 +243,19 @@ impl Command for Commands {
         Ok(res)
     }
 
-    fn info(&self) -> String {
-        format!("Bot-RS Core {}", CORE_VERSION)
+    fn info(&self) -> PluginInfo {
+        PluginInfo {
+            name: "Bot-RS Core".to_string(),
+            version: CORE_VERSION.to_string(),
+            authors: env!("CARGO_PKG_AUTHORS").to_string(),
+            repo: Some(env!("CARGO_PKG_REPOSITORY").to_string()),
+            commands: vec![]
+        }
     }
 }
 
 #[async_trait]
-impl PipedCommand for Commands {
+impl StreamablePlugin for Plugins {
     async fn stream(&self,
                     mut input: UnboundedReceiver<Message>,
                     output: UnboundedSender<Vec<Message>>) -> Result<(), InvocationError> {
@@ -253,7 +283,7 @@ impl PipedCommand for Commands {
 }
 
 struct SimpleRegistrar {
-    commands: Vec<CommandProxy>,
+    commands: Vec<PluginProxy>,
     lib: Arc<Library>,
 }
 
@@ -267,8 +297,8 @@ impl SimpleRegistrar {
 }
 
 impl CommandRegistrar for SimpleRegistrar {
-    fn register(&mut self, command: Arc<dyn PipedCommand>) {
-        let proxy = CommandProxy {
+    fn register(&mut self, command: Arc<dyn StreamablePlugin>) {
+        let proxy = PluginProxy {
             command: Arc::clone(&command),
             _lib: Arc::clone(&self.lib),
         };
@@ -278,14 +308,14 @@ impl CommandRegistrar for SimpleRegistrar {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Command, PipedCommand, Message, InvocationError};
+    use crate::{Plugin, StreamablePlugin, Message, InvocationError};
     use async_trait::async_trait;
 
-    #[derive(PipedCommand)]
+    #[derive(StreamablePlugin)]
     struct TestCommand;
 
     #[async_trait]
-    impl Command for TestCommand {
+    impl Plugin for TestCommand {
         async fn call(&self, _message: Message) -> Result<Vec<Message>, InvocationError> {
             println!("Test command called!");
             Ok(Vec::new())

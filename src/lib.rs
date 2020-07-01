@@ -16,7 +16,7 @@ pub mod config;
 mod utils;
 
 // Re-Exports for a clean API
-pub use config::commands::*;
+pub use config::plugins::*;
 pub use config::profile::*;
 
 use core::fmt;
