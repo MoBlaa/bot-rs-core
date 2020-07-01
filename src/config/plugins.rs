@@ -213,11 +213,16 @@ impl Plugins {
 
         // version checks to prevent accidental ABI incompatibilities
         if decl.rustc_version != RUSTC_VERSION
-            || decl.core_version != CORE_VERSION
         {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
-                "Version mismatch",
+                format!("RUSTC version mismatch; botrs: {}, plugin: {}", RUSTC_VERSION, decl.rustc_version),
+            ));
+        }
+        if decl.core_version != CORE_VERSION {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!("CORE version mismatch; botrs: {}, plugin: {}", CORE_VERSION, decl.core_version),
             ));
         }
         trace!("RUSTC and CORE versions match!");
