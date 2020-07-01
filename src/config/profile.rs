@@ -105,10 +105,6 @@ impl Profile {
         std::env::set_var(ENV_ACTIVE_PROFILE, ser);
     }
 
-    pub fn plugins_dir(&self) -> PathBuf {
-        Self::profile_dir(OsString::from(self.name.as_str())).join("plugins")
-    }
-
     /// Sets the given credentials for the platform. Overwrites existing credentials for the platform.
     pub fn set_credentials(&mut self, platform: Platform, creds: Credentials) {
         self.credentials.insert(platform, creds);
