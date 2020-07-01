@@ -93,11 +93,7 @@ impl Display for InvocationError {
 pub struct CommandDeclaration {
     pub rustc_version: &'static str,
     pub core_version: &'static str,
-    pub register: unsafe extern "C" fn(&mut dyn CommandRegistrar),
-}
-
-pub trait CommandRegistrar {
-    fn register(&mut self, command: Arc<dyn StreamablePlugin>);
+    pub register: unsafe extern "C" fn(&mut PluginRegistrar),
 }
 
 #[macro_export]
@@ -227,7 +223,7 @@ impl Plugins {
         }
         trace!("RUSTC and CORE versions match!");
 
-        let mut registrar = SimpleRegistrar::new(Arc::clone(&library));
+        let mut registrar = Box::new(PluginRegistrar::new(Arc::clone(&library)));
 
         (decl.register)(&mut registrar);
 
@@ -297,22 +293,22 @@ impl StreamablePlugin for Plugins {
     }
 }
 
-struct SimpleRegistrar {
+pub struct PluginRegistrar {
     commands: Vec<PluginProxy>,
     lib: Arc<Library>,
 }
 
-impl SimpleRegistrar {
-    fn new(lib: Arc<Library>) -> SimpleRegistrar {
-        SimpleRegistrar {
+impl PluginRegistrar {
+    fn new(lib: Arc<Library>) -> PluginRegistrar {
+        PluginRegistrar {
             lib,
             commands: Vec::new(),
         }
     }
 }
 
-impl CommandRegistrar for SimpleRegistrar {
-    fn register(&mut self, command: Arc<dyn StreamablePlugin>) {
+impl PluginRegistrar {
+    pub fn register(&mut self, command: Arc<dyn StreamablePlugin>) {
         let proxy = PluginProxy {
             command: Arc::clone(&command),
             _lib: Arc::clone(&self.lib),
