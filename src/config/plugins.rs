@@ -173,8 +173,8 @@ impl Plugins {
     pub fn load_file(&mut self, entry: PathBuf) -> io::Result<()> {
         if entry.exists() && entry.is_file() {
             if let Some(extension) = entry.extension() {
-                if extension == "so" {
-                    debug!("Loading plugin-file {}", entry.to_str().unwrap());
+                if extension == "so" || extension == "dll" {
+                    debug!("Trying to load plugin-file {}", entry.to_str().unwrap());
                     unsafe { self.load(entry)? };
                 } else {
                     panic!("Unsupported extension: {}", extension.to_string_lossy());
