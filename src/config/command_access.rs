@@ -35,12 +35,16 @@ impl AccessRights {
                     .and_then(|params| params.trailing)
                     .and_then(|trailing| {
                         let trailing = trailing.trim_start();
-                        for (name, filter) in self.filters.iter() {
-                            if trailing.trim_start().starts_with(name) {
-                                return Some(filter.matches(mssg));
+                        if AccessFilter::broadcaster().matches(mssg) {
+                            Some(true)
+                        } else {
+                            for (name, filter) in self.filters.iter() {
+                                if trailing.trim_start().starts_with(name) {
+                                    return Some(filter.matches(mssg));
+                                }
                             }
+                            None
                         }
-                        None
                     })
             }
         }
@@ -54,6 +58,10 @@ pub enum AccessFilter {
 }
 
 impl AccessFilter {
+    pub fn broadcaster() -> AccessFilter {
+        AccessFilter::Badge(String::from("broadcaster/*"))
+    }
+
     pub fn matches(&self, mssg: &Message) -> bool {
         match self {
             AccessFilter::Badge(regex) => {
@@ -65,7 +73,7 @@ impl AccessFilter {
                                 badges.split(',')
                                     .any(|badge| {
                                         let regex = Regex::new(regex).expect("invalid regex");
-                                        badge.contains("broadcaster") || regex.is_match(badge)
+                                        regex.is_match(badge)
                                     })
                             }).unwrap_or(false)
                     }
