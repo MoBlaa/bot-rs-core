@@ -5,16 +5,14 @@ use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use libloading::Library;
-
 use async_trait::async_trait;
-
+use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 use futures::future::join_all;
+use futures::SinkExt;
+use libloading::Library;
+use tokio::stream::StreamExt;
 
 use crate::{CORE_VERSION, Message, RUSTC_VERSION};
-use futures::channel::mpsc::{UnboundedSender, UnboundedReceiver, unbounded};
-use tokio::stream::StreamExt;
-use futures::SinkExt;
 
 /// Contains information about a plugin to identify the supported commands, author information, etc.
 pub struct PluginInfo {
@@ -22,7 +20,7 @@ pub struct PluginInfo {
     pub version: String,
     pub authors: String,
     pub repo: Option<String>,
-    pub commands: Vec<String>
+    pub commands: Vec<String>,
 }
 
 impl Display for PluginInfo {
@@ -171,19 +169,17 @@ impl Plugins {
     }
 
     pub fn load_file(&mut self, entry: PathBuf) -> io::Result<()> {
-        if entry.exists() && entry.is_file() {
-            if let Some(extension) = entry.extension() {
-                if extension == "so" || extension == "dll" {
-                    debug!("Trying to load plugin-file {}", entry.to_str().unwrap());
-                    unsafe { self.load(entry)? };
-                } else {
-                    panic!("Unsupported extension: {}", extension.to_string_lossy());
+        if entry.exists() {
+            if entry.is_file() {
+                if let Some(extension) = entry.extension() {
+                    if extension == "so" || extension == "dll" {
+                        debug!("Trying to load plugin-file {}", entry.to_str().unwrap());
+                        unsafe { self.load(entry)? };
+                    }
                 }
-            } else {
-                panic!("Invalid extension!");
             }
         } else {
-            panic!("Doesn't exist or isn't a file!");
+            panic!("File doesn't exist: '{}'", entry.display());
         }
         Ok(())
     }
@@ -260,7 +256,7 @@ impl Plugin for Plugins {
             version: CORE_VERSION.to_string(),
             authors: env!("CARGO_PKG_AUTHORS").to_string(),
             repo: option_env!("CARGO_PKG_REPOSITORY").map(|repo| repo.to_string()),
-            commands: vec![]
+            commands: vec![],
         }
     }
 }
@@ -319,8 +315,9 @@ impl PluginRegistrar {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Plugin, StreamablePlugin, Message, InvocationError};
     use async_trait::async_trait;
+
+    use crate::{InvocationError, Message, Plugin, StreamablePlugin};
 
     #[derive(StreamablePlugin)]
     struct TestCommand;

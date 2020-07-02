@@ -20,6 +20,7 @@ pub const ENV_TWITCH_AUTH: &str = "BRS_TWITCH_AUTH";
 pub const TWITCH_CLIENT_ID: &str = env!("BRS_TWITCH_CLIENT_ID");
 pub const TWITCH_CLIENT_SECRET: Option<&str> = option_env!("BRS_TWITCH_CLIENT_SECRET");
 pub const ENV_TWITCH_TOKEN: &str = "BRS_TWITCH_TOKEN";
+/// Contains a serialized version of the userInfo of the currently used bot account.
 pub const ENV_TWITCH_USER_INFO: &str = "BRS_TWITCH_USERINFO";
 
 /// Optional Comma separated List of scopes defined at [](https://dev.twitch.tv/docs/authentication/#scopes). Defaults to: `["channel:moderate","chat:edit","chat:read","user:edit:follows","user_follows_edit"]`
