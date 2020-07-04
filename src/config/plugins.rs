@@ -317,7 +317,7 @@ impl PluginRegistrar {
 mod tests {
     use async_trait::async_trait;
 
-    use crate::{InvocationError, Message, Plugin, StreamablePlugin};
+    use crate::{InvocationError, Message, Plugin, StreamablePlugin, PluginInfo};
 
     #[derive(StreamablePlugin)]
     struct TestCommand;
@@ -329,8 +329,14 @@ mod tests {
             Ok(Vec::new())
         }
 
-        fn info(&self) -> String {
-            "Test Command".to_string()
+        fn info(&self) -> PluginInfo {
+            PluginInfo {
+                name: "".to_string(),
+                version: "".to_string(),
+                authors: "".to_string(),
+                repo: None,
+                commands: vec![]
+            }
         }
     }
 
