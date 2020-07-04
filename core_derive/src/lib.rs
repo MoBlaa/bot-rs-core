@@ -26,6 +26,10 @@ fn impl_piped_command(ast: &syn::DeriveInput) -> TokenStream {
                     }
                     Ok(())
             }
+
+            fn info(&self) -> PluginInfo {
+                bot_rs_core::Plugin::info(self)
+            }
         }
     };
     gen.into()

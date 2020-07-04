@@ -51,10 +51,12 @@ pub trait Plugin: Send + Sync {
 /// Allows users to create an asynchronously running stream. This allows commands
 /// to send messages to the output without the need of a command invocation.
 #[async_trait]
-pub trait StreamablePlugin: Plugin {
+pub trait StreamablePlugin: Send + Sync {
     /// Create a new Stream sending messages into [output] and receiving messages to
     /// the returned sender.
     async fn stream(&self, input: UnboundedReceiver<Message>, output: UnboundedSender<Vec<Message>>) -> Result<(), InvocationError>;
+
+    fn info(&self) -> PluginInfo;
 }
 
 #[derive(Debug)]
@@ -113,20 +115,13 @@ pub struct PluginProxy {
 }
 
 #[async_trait]
-impl Plugin for PluginProxy {
-    async fn call(&self, message: Message) -> Result<Vec<Message>, InvocationError> {
-        self.command.call(message).await
+impl StreamablePlugin for PluginProxy {
+    async fn stream(&self, input: UnboundedReceiver<Message>, output: UnboundedSender<Vec<Message>>) -> Result<(), InvocationError> {
+        self.command.stream(input, output).await
     }
 
     fn info(&self) -> PluginInfo {
         self.command.info()
-    }
-}
-
-#[async_trait]
-impl StreamablePlugin for PluginProxy {
-    async fn stream(&self, input: UnboundedReceiver<Message>, output: UnboundedSender<Vec<Message>>) -> Result<(), InvocationError> {
-        self.command.stream(input, output).await
     }
 }
 
@@ -233,35 +228,6 @@ impl Plugins {
 }
 
 #[async_trait]
-impl Plugin for Plugins {
-    async fn call(&self, message: Message) -> Result<Vec<Message>, InvocationError> {
-        let mut futs = Vec::new();
-        for command in self.commands.iter() {
-            futs.push(command.call(message.clone()));
-        }
-
-        // Join the futures so they are actually performed
-        let joined = join_all(futs).await;
-
-        let mut res = Vec::new();
-        for result in joined {
-            res.extend(result?);
-        }
-        Ok(res)
-    }
-
-    fn info(&self) -> PluginInfo {
-        PluginInfo {
-            name: "Bot-RS Core".to_string(),
-            version: CORE_VERSION.to_string(),
-            authors: env!("CARGO_PKG_AUTHORS").to_string(),
-            repo: option_env!("CARGO_PKG_REPOSITORY").map(|repo| repo.to_string()),
-            commands: vec![],
-        }
-    }
-}
-
-#[async_trait]
 impl StreamablePlugin for Plugins {
     async fn stream(&self,
                     mut input: UnboundedReceiver<Message>,
@@ -286,6 +252,16 @@ impl StreamablePlugin for Plugins {
         });
         join_all(streams).await;
         Ok(())
+    }
+
+    fn info(&self) -> PluginInfo {
+        PluginInfo {
+            name: "Bot-RS Core".to_string(),
+            version: CORE_VERSION.to_string(),
+            authors: env!("CARGO_PKG_AUTHORS").to_string(),
+            repo: option_env!("CARGO_PKG_REPOSITORY").map(|repo| repo.to_string()),
+            commands: vec![],
+        }
     }
 }
 
