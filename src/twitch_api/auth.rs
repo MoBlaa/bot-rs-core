@@ -28,7 +28,7 @@ pub const ENV_TWITCH_SCOPES: &str = "BRS_TWITCH_SCOPES";
 const TWITCH_OAUTH_HANDLER_SCRIPT: &str = include_str!("twitch_oauth.html");
 
 static REDIRECT_URI: &str = "http://localhost:4334/";
-static DEFAULT_SCOPES: [&str;7] = ["channel:moderate","chat:edit","chat:read","user:edit:follows","user_follows_edit", "user:edit", "user_read"];
+static DEFAULT_SCOPES: [&str;8] = ["channel:moderate","chat:edit","chat:read","user:edit:follows","user_follows_edit", "user:edit", "user_read", "whispers:edit"];
 
 type AuthMutex = Arc<(Mutex<Option<Credentials>>, Condvar)>;
 

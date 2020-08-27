@@ -18,7 +18,7 @@ const ENV_ACTIVE_PROFILE: &str = "BRS_ACTIVE_PROFILE";
 pub enum ProfileError {
     AlreadyExists(OsString),
     IO(io::Error),
-    Json(JsonError)
+    Json(JsonError),
 }
 
 impl From<io::Error> for ProfileError {
@@ -61,16 +61,18 @@ impl Display for ProfileError {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Profile {
     name: String,
+    channels: Vec<String>,
     credentials: HashMap<Platform, Credentials>,
-    rights: AccessRights
+    rights: AccessRights,
 }
 
 impl Profile {
-    pub fn new(name: String) -> Self {
+    pub fn new(name: String, channels: Vec<String>) -> Self {
         Profile {
             name,
+            channels,
             credentials: HashMap::new(),
-            rights: AccessRights::new()
+            rights: AccessRights::new(),
         }
     }
 
@@ -84,6 +86,17 @@ impl Profile {
         } else {
             None
         }
+    }
+
+    pub fn get_channels(&self) -> &[String] {
+        &self.channels
+    }
+
+    pub fn add_channels(&mut self, channels: Vec<String>) {
+        let mut new_channels = Vec::with_capacity(self.channels.len() + channels.len());
+        new_channels.append(&mut self.channels);
+        new_channels.extend(channels);
+        self.channels = new_channels;
     }
 
     pub fn from_dir(dir: &DirEntry) -> Result<Self, ProfileError> {
@@ -155,6 +168,7 @@ impl Display for Profile {
                 writeln!(f, "\t{:?}: {}", platform, creds)?;
             }
         }
+        writeln!(f, "Channels:\t{}", self.channels.join(", "))?;
         if self.rights.is_empty() {
             writeln!(f, "Access Rights:\tOnly Broadcaster")?;
         } else {
@@ -189,7 +203,7 @@ impl Profiles {
                     Err(why) => warn!("failed to load profile config '{}': {}", path.path().display(), why),
                     Ok(profile) => {
                         profiles.insert(path.file_name(), profile);
-                    },
+                    }
                 }
             }
         }
