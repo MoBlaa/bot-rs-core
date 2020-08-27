@@ -61,14 +61,16 @@ impl Display for ProfileError {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Profile {
     name: String,
+    channels: Vec<String>,
     credentials: HashMap<Platform, Credentials>,
     rights: AccessRights
 }
 
 impl Profile {
-    pub fn new(name: String) -> Self {
+    pub fn new(name: String, channels: Vec<String>) -> Self {
         Profile {
             name,
+            channels,
             credentials: HashMap::new(),
             rights: AccessRights::new()
         }
@@ -84,6 +86,10 @@ impl Profile {
         } else {
             None
         }
+    }
+
+    pub fn get_channels(&self) -> &[String] {
+        &self.channels
     }
 
     pub fn from_dir(dir: &DirEntry) -> Result<Self, ProfileError> {
@@ -155,6 +161,7 @@ impl Display for Profile {
                 writeln!(f, "\t{:?}: {}", platform, creds)?;
             }
         }
+        writeln!(f, "Channels:\t{}", self.channels.join(", "));
         if self.rights.is_empty() {
             writeln!(f, "Access Rights:\tOnly Broadcaster")?;
         } else {
