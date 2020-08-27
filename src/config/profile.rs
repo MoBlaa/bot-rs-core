@@ -11,8 +11,6 @@ use core::fmt;
 use std::ffi::OsString;
 use std::io::Write;
 use crate::config::command_access::AccessRights;
-use rocket::http::ext::IntoCollection;
-use std::iter::FromIterator;
 
 const ENV_ACTIVE_PROFILE: &str = "BRS_ACTIVE_PROFILE";
 
@@ -69,11 +67,10 @@ pub struct Profile {
 }
 
 impl Profile {
-    pub fn new<T, S>(name: String, channels: T) -> Self
-        where T: Iterator<Item=S>, S: AsRef<str> {
+    pub fn new(name: String, channels: Vec<String>) -> Self {
         Profile {
             name,
-            channels: channels.map(|item| item.as_ref().to_string()).collect::<Vec<_>>(),
+            channels,
             credentials: HashMap::new(),
             rights: AccessRights::new(),
         }
@@ -95,10 +92,10 @@ impl Profile {
         &self.channels
     }
 
-    pub fn add_channels(&mut self, mut channels: Vec<String>) {
+    pub fn add_channels(&mut self, channels: Vec<String>) {
         let mut new_channels = Vec::with_capacity(self.channels.len() + channels.len());
         new_channels.append(&mut self.channels);
-        new_channels.extend(&mut channels);
+        new_channels.extend(channels);
         self.channels = new_channels;
     }
 
@@ -171,7 +168,7 @@ impl Display for Profile {
                 writeln!(f, "\t{:?}: {}", platform, creds)?;
             }
         }
-        writeln!(f, "Channels:\t{}", self.channels.join(", "));
+        writeln!(f, "Channels:\t{}", self.channels.join(", "))?;
         if self.rights.is_empty() {
             writeln!(f, "Access Rights:\tOnly Broadcaster")?;
         } else {
