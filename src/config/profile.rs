@@ -11,6 +11,8 @@ use core::fmt;
 use std::ffi::OsString;
 use std::io::Write;
 use crate::config::command_access::AccessRights;
+use rocket::http::ext::IntoCollection;
+use std::iter::FromIterator;
 
 const ENV_ACTIVE_PROFILE: &str = "BRS_ACTIVE_PROFILE";
 
@@ -68,10 +70,10 @@ pub struct Profile {
 
 impl Profile {
     pub fn new<T, S>(name: String, channels: T) -> Self
-        where T: Iter<S>, S: ToString {
+        where T: Iterator<Item=S>, S: AsRef<str> {
         Profile {
             name,
-            channels,
+            channels: channels.map(|item| item.as_ref().to_string()).collect::<Vec<_>>(),
             credentials: HashMap::new(),
             rights: AccessRights::new(),
         }
@@ -91,6 +93,13 @@ impl Profile {
 
     pub fn get_channels(&self) -> &[String] {
         &self.channels
+    }
+
+    pub fn add_channels(&mut self, mut channels: Vec<String>) {
+        let mut new_channels = Vec::with_capacity(self.channels.len() + channels.len());
+        new_channels.append(&mut self.channels);
+        new_channels.extend(&mut channels);
+        self.channels = new_channels;
     }
 
     pub fn from_dir(dir: &DirEntry) -> Result<Self, ProfileError> {
