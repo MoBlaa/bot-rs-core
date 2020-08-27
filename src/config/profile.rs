@@ -18,7 +18,7 @@ const ENV_ACTIVE_PROFILE: &str = "BRS_ACTIVE_PROFILE";
 pub enum ProfileError {
     AlreadyExists(OsString),
     IO(io::Error),
-    Json(JsonError)
+    Json(JsonError),
 }
 
 impl From<io::Error> for ProfileError {
@@ -63,16 +63,17 @@ pub struct Profile {
     name: String,
     channels: Vec<String>,
     credentials: HashMap<Platform, Credentials>,
-    rights: AccessRights
+    rights: AccessRights,
 }
 
 impl Profile {
-    pub fn new(name: String, channels: Vec<String>) -> Self {
+    pub fn new<T, S>(name: String, channels: T) -> Self
+        where T: Iter<S>, S: ToString {
         Profile {
             name,
             channels,
             credentials: HashMap::new(),
-            rights: AccessRights::new()
+            rights: AccessRights::new(),
         }
     }
 
@@ -196,7 +197,7 @@ impl Profiles {
                     Err(why) => warn!("failed to load profile config '{}': {}", path.path().display(), why),
                     Ok(profile) => {
                         profiles.insert(path.file_name(), profile);
-                    },
+                    }
                 }
             }
         }
