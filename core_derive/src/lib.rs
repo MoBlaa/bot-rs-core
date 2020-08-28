@@ -28,7 +28,7 @@ fn impl_piped_command(ast: &syn::DeriveInput) -> TokenStream {
             }
 
             fn info(&self) -> PluginInfo {
-                bot_rs_core::Plugin::info(self)
+                Plugin::info(self)
             }
         }
     };

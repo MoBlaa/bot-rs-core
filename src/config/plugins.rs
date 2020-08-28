@@ -293,7 +293,7 @@ impl PluginRegistrar {
 mod tests {
     use async_trait::async_trait;
 
-    use crate::{InvocationError, Message, Plugin, StreamablePlugin, PluginInfo};
+    use crate::{Plugin, Message, InvocationError, PluginInfo, StreamablePlugin};
 
     #[derive(StreamablePlugin)]
     struct TestCommand;
