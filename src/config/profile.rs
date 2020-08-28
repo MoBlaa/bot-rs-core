@@ -63,14 +63,18 @@ pub struct Profile {
     name: String,
     channels: Vec<String>,
     credentials: HashMap<Platform, Credentials>,
+    client_id: String,
+    client_secret: Option<String>,
     rights: AccessRights,
 }
 
 impl Profile {
-    pub fn new(name: String, channels: Vec<String>) -> Self {
+    pub fn new(name: String, channels: Vec<String>, client_id: String, client_secret: Option<String>) -> Self {
         Profile {
             name,
             channels,
+            client_id,
+            client_secret,
             credentials: HashMap::new(),
             rights: AccessRights::new(),
         }
@@ -90,6 +94,12 @@ impl Profile {
 
     pub fn get_channels(&self) -> &[String] {
         &self.channels
+    }
+
+    pub fn get_client_id(&self) -> String { self.client_id.clone() }
+
+    pub fn get_client_secret(&self) -> Option<String> {
+        self.client_secret.clone()
     }
 
     pub fn add_channels(&mut self, channels: Vec<String>) {

@@ -17,8 +17,6 @@ use std::ops::Add;
 /// "code" = OAuth Authorization Code Flow,
 /// "client_credentials" = OAuth Client Credentials Flow
 pub const ENV_TWITCH_AUTH: &str = "BRS_TWITCH_AUTH";
-pub const TWITCH_CLIENT_ID: &str = env!("BRS_TWITCH_CLIENT_ID");
-pub const TWITCH_CLIENT_SECRET: Option<&str> = option_env!("BRS_TWITCH_CLIENT_SECRET");
 pub const ENV_TWITCH_TOKEN: &str = "BRS_TWITCH_TOKEN";
 /// Contains a serialized version of the userInfo of the currently used bot account.
 pub const ENV_TWITCH_USER_INFO: &str = "BRS_TWITCH_USERINFO";
@@ -60,12 +58,21 @@ fn auth_get(auth_req: State<AuthRequest>, auth: State<AuthMutex>, access_token: 
     "Successfully obtained access token! You can close this window now..".to_string()
 }
 
-#[derive(Default)]
-pub struct TwitchAuthenticator;
+pub struct TwitchAuthenticator {
+    client_id: String,
+    client_secret: Option<String>
+}
 
 impl TwitchAuthenticator {
+    pub fn new(client_id: String, client_secret: Option<String>) -> Self {
+        TwitchAuthenticator {
+            client_id,
+            client_secret
+        }
+    }
+
     pub fn authenticate(&self) -> Credentials {
-        let req = AuthRequest::default();
+        let req = AuthRequest::new(self.client_id.clone(), self.client_secret.clone());
         info!("For authentication please grant Nemabot access to the Bots Twitch account at: '{}'", req.to_string());
         let auth_lock: AuthMutex = Arc::new((Mutex::new(None), Condvar::new()));
 
@@ -108,8 +115,8 @@ impl TwitchAuthenticator {
         let body: String = response.text().await
             .expect("invalid response body");
         let body: TwitchValidation = serde_json::from_str(&body).unwrap();
-        if body.client_id != TWITCH_CLIENT_ID {
-            error!("Client-ID doesn't match the one used for auth. Expected: {}, Actual: {}", TWITCH_CLIENT_ID, body.client_id);
+        if body.client_id != self.client_id {
+            error!("Client-ID doesn't match the one used for auth. Expected: {}, Actual: {}", self.client_id, body.client_id);
             return Err(ValidationError::BadClientId);
         }
         let exp_dur = Duration::seconds(body.expires_in);
@@ -148,12 +155,6 @@ pub enum AuthRequest {
     }
 }
 
-impl Default for AuthRequest {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[derive(Serialize, Deserialize, Debug)]
 struct TwitchValidation {
     client_id: String,
@@ -164,7 +165,8 @@ struct TwitchValidation {
 }
 
 impl AuthRequest {
-    fn new() -> AuthRequest {
+    fn new(client_id: String, client_secret: Option<String>) -> Self
+    {
         let auth_type = std::env::var(ENV_TWITCH_AUTH)
             .unwrap_or_else(|arg| {
                 warn!("Error fetching envvar: {}", arg);
@@ -182,25 +184,25 @@ impl AuthRequest {
 
         match auth_type.as_str() {
             "token" => AuthRequest::ImplicitCode {
-                client_id: TWITCH_CLIENT_ID.to_string(),
+                client_id,
                 redirect_uri: REDIRECT_URI.to_string(),
                 scope,
                 state: rand_alphanumeric(30),
                 force_verify: true
             },
             "code" => AuthRequest::AuthorizationCode {
-                client_id: TWITCH_CLIENT_ID.to_string(),
+                client_id,
                 redirect_uri: REDIRECT_URI.to_string(),
                 scope,
                 state: rand_alphanumeric(30),
                 force_verify: true
             },
             "client_credentials" => {
-                let client_secret = TWITCH_CLIENT_SECRET
+                let client_secret = client_secret
                     .expect("client-secret required for client_credential authentication with twitch");
 
                 AuthRequest::ClientCredentials {
-                    client_id: TWITCH_CLIENT_ID.to_string(),
+                    client_id,
                     client_secret: client_secret.to_string(),
                     scope
                 }
