@@ -69,6 +69,10 @@ pub struct Profile {
 }
 
 impl Profile {
+    pub fn empty() -> Self {
+        Self::new(String::new(), Vec::new(), String::new(), None)
+    }
+
     pub fn new(name: String, channels: Vec<String>, client_id: String, client_secret: Option<String>) -> Self {
         Profile {
             name,
