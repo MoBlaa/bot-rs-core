@@ -203,7 +203,7 @@ impl AuthRequest {
 
                 AuthRequest::ClientCredentials {
                     client_id,
-                    client_secret: client_secret.to_string(),
+                    client_secret,
                     scope
                 }
             },
