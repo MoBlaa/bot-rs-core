@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
+use futures_channel::mpsc::{UnboundedReceiver, UnboundedSender};
 use libloading::Library;
 
 use crate::Message;
@@ -143,8 +143,9 @@ impl PluginRegistrar {
 
 #[cfg(test)]
 mod tests {
+    use bot_rs_core_derive::*;
     use async_trait::async_trait;
-    use crate::plugin::{Plugin, InvocationError, PluginInfo};
+    use crate::plugin::{Plugin, InvocationError, PluginInfo, StreamablePlugin};
     use crate::Message;
 
     #[derive(StreamablePlugin)]
