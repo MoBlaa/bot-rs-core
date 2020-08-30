@@ -11,7 +11,6 @@ extern crate bot_rs_core_derive;
 #[cfg(test)]
 #[macro_use]
 extern crate bot_rs_core_derive;
-#[cfg(test)]
 #[macro_use]
 extern crate async_trait;
 
