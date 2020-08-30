@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use crate::plugin::{StreamablePlugin, InvocationError, PluginInfo, CommandDeclaration, PluginProxy};
+use crate::plugin::{StreamablePlugin, InvocationError, PluginInfo, CommandDeclaration, PluginProxy, PluginRegistrar};
 use libloading::Library;
 use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender, unbounded};
 use crate::{Message, RUSTC_VERSION, CORE_VERSION};
@@ -7,6 +7,7 @@ use std::path::PathBuf;
 use std::{io, fs};
 use std::ffi::OsStr;
 use futures::{StreamExt, SinkExt};
+use futures::future::join_all;
 
 // Contains all loaded Plugins.
 #[derive(Default)]
@@ -23,7 +24,7 @@ impl Plugins {
         }
     }
 
-    pub fn iter(&self) -> std::slice::Iter<PluginProxy> {
+    pub fn iter(&self) -> std::slice::Iter<impl StreamablePlugin> {
         self.commands.iter()
     }
 
@@ -123,16 +124,14 @@ impl StreamablePlugin for Plugins {
             channel_inputs.push(write);
             streams.push(stream);
         }
-        tokio::spawn(async move {
-            while let Some(msg) = input.next().await {
-                let mut sends = Vec::with_capacity(channel_inputs.len());
-                for sender in channel_inputs.iter_mut() {
-                    sends.push(sender.send(msg.clone()));
-                }
-                // Actually send to all channels/commands
-                join_all(sends).await;
+        while let Some(msg) = input.next().await {
+            let mut sends = Vec::with_capacity(channel_inputs.len());
+            for sender in channel_inputs.iter_mut() {
+                sends.push(sender.send(msg.clone()));
             }
-        });
+            // Actually send to all channels/commands
+            join_all(sends).await;
+        }
         join_all(streams).await;
         Ok(())
     }

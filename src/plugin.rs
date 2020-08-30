@@ -120,20 +120,18 @@ impl StreamablePlugin for PluginProxy {
 }
 
 pub struct PluginRegistrar {
-    commands: Vec<PluginProxy>,
+    pub(crate) commands: Vec<PluginProxy>,
     lib: Arc<Library>,
 }
 
 impl PluginRegistrar {
-    fn new(lib: Arc<Library>) -> PluginRegistrar {
+    pub fn new(lib: Arc<Library>) -> PluginRegistrar {
         PluginRegistrar {
             lib,
             commands: Vec::new(),
         }
     }
-}
 
-impl PluginRegistrar {
     pub fn register(&mut self, command: Arc<dyn StreamablePlugin>) {
         let proxy = PluginProxy {
             command: Arc::clone(&command),
@@ -146,8 +144,8 @@ impl PluginRegistrar {
 #[cfg(test)]
 mod tests {
     use async_trait::async_trait;
-
-    use crate::{Plugin, Message, InvocationError, PluginInfo, StreamablePlugin};
+    use crate::plugin::{Plugin, InvocationError, PluginInfo};
+    use crate::Message;
 
     #[derive(StreamablePlugin)]
     struct TestCommand;

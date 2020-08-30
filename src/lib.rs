@@ -11,6 +11,8 @@ extern crate bot_rs_core_derive;
 #[cfg(test)]
 #[macro_use]
 extern crate bot_rs_core_derive;
+#[macro_use]
+extern crate async_trait;
 
 #[cfg(feature = "twitch-api")]
 pub mod twitch_api;
