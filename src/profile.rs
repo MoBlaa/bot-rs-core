@@ -10,7 +10,7 @@ use serde::export::Formatter;
 use core::fmt;
 use std::ffi::OsString;
 use std::io::Write;
-use crate::config::command_access::AccessRights;
+use crate::command_access::AccessRights;
 
 const ENV_ACTIVE_PROFILE: &str = "BRS_ACTIVE_PROFILE";
 

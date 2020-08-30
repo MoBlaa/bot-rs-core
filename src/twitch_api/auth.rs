@@ -6,7 +6,7 @@ use crate::utils::rand_alphanumeric;
 use std::sync::{Mutex, Arc, Condvar};
 use std::thread;
 use rocket::response::content;
-use rocket::State;
+use rocket::{State, get, post, routes, };
 use rocket::config::Environment;
 use crate::auth::{Credentials, UserInfo, ValidationError};
 use chrono::{Duration, Local};

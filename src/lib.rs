@@ -4,20 +4,31 @@
 extern crate log;
 #[macro_use]
 extern crate serde;
-#[macro_use]
+#[cfg(feature = "plugin-loader")]
 extern crate rocket;
+#[cfg(feature = "derive")]
+extern crate bot_rs_core_derive;
 #[cfg(test)]
 #[macro_use]
 extern crate bot_rs_core_derive;
 
+#[cfg(feature = "twitch-api")]
 pub mod twitch_api;
+#[cfg(feature = "default")]
 pub mod auth;
-pub mod config;
+#[cfg(feature = "default")]
 mod utils;
+#[cfg(feature = "default")]
+pub mod plugin;
+#[cfg(feature = "default")]
+pub mod profile;
+#[cfg(feature = "plugin-loader")]
+pub mod plugins;
+#[cfg(feature = "default")]
+pub mod command_access;
 
-// Re-Exports for a clean API
-pub use config::plugins::*;
-pub use config::profile::*;
+#[cfg(feature = "derive")]
+pub use bot_rs_core_derive::*;
 
 use core::fmt;
 use std::fmt::{Display, Formatter};
