@@ -1,14 +1,14 @@
 use std::sync::Arc;
 use crate::plugin::{StreamablePlugin, InvocationError, PluginInfo, CommandDeclaration, PluginProxy, PluginRegistrar};
 use libloading::Library;
-use futures_channel::mpsc::{UnboundedReceiver, UnboundedSender, unbounded};
+use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender, unbounded};
 use crate::{Message, RUSTC_VERSION, CORE_VERSION};
 use std::path::PathBuf;
 use std::{io, fs};
 use std::ffi::OsStr;
-use futures_util::stream::StreamExt;
-use futures_util::sink::SinkExt;
-use futures_util::future::join_all;
+use futures::stream::StreamExt;
+use futures::sink::SinkExt;
+use futures::future::join_all;
 
 // Contains all loaded Plugins.
 #[derive(Default)]

@@ -17,12 +17,12 @@ fn impl_piped_command(ast: &syn::DeriveInput) -> TokenStream {
         impl StreamablePlugin for #name {
             async fn stream(
                 &self,
-                mut input: futures_channel::mpsc::UnboundedReceiver<Message>,
-                mut output: futures_channel::mpsc::UnboundedSender<Vec<Message>>)
+                mut input: futures::channel::mpsc::UnboundedReceiver<Message>,
+                mut output: futures::channel::mpsc::UnboundedSender<Vec<Message>>)
             -> Result<(), InvocationError> {
-                    while let Some(msg) = futures_util::stream::StreamExt::next(&mut input).await {
+                    while let Some(msg) = futures::stream::StreamExt::next(&mut input).await {
                         let results = self.call(msg).await?;
-                        futures_util::sink::SinkExt::send(&mut output, results).await.expect("failed to send results to output");
+                        futures::sink::SinkExt::send(&mut output, results).await.expect("failed to send results to output");
                     }
                     Ok(())
             }

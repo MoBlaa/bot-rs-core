@@ -14,8 +14,7 @@ derive = ["bot-rs-core-derive"]
 [dependencies]
 irc-rust = "0.2.1"
 async-trait = "0.1.40"
-futures-util = "0.3.5"
-futures-channel = "0.3.5"
+futures = "0.3.5"
 libloading = "0.6.2"
 log = "0.4.8"
 rand = "0.7.3"
