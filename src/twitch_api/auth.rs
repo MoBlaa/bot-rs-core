@@ -123,8 +123,8 @@ impl TwitchAuthenticator {
         let exp_date = Local::now().add(exp_dur);
         warn!("Token expires on: {}", exp_date);
         Ok(UserInfo::Twitch {
-            login: body.login,
-            user_id: body.user_id,
+            name: body.login,
+            id: body.user_id,
         })
     }
 }

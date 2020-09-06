@@ -1,8 +1,5 @@
 use std::fmt;
-use crate::Message;
 use irc_rust::message::Message as IrcMessage;
-use std::error::Error;
-use irc_rust::tags::Tags;
 use std::convert::TryFrom;
 
 #[derive(Deserialize, Serialize, PartialEq, Eq, Debug, Hash, Clone)]
@@ -17,7 +14,7 @@ pub enum InvalidIrcMessageError<'a> {
     MissingPrefix(&'a IrcMessage),
 }
 
-impl fmt::Display for InvalidIrcMessageError {
+impl fmt::Display for InvalidIrcMessageError<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             InvalidIrcMessageError::MissingTags(msg) => write!(f, "Missing Tags in IRC message: {}", msg),
@@ -30,8 +27,8 @@ impl fmt::Display for InvalidIrcMessageError {
 #[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
 pub enum UserInfo {
     Twitch {
-        username: String,
-        user_id: String,
+        name: String,
+        id: String,
     },
     None,
 }
@@ -40,7 +37,7 @@ impl UserInfo {
     /// Returns the Name of the user on the corresponding platform.
     pub fn get_platform_name(&self) -> Option<&String> {
         match self {
-            UserInfo::Twitch { username: login, .. } => Some(login),
+            UserInfo::Twitch { name: login, .. } => Some(login),
             UserInfo::None => None
         }
     }
@@ -48,7 +45,7 @@ impl UserInfo {
     /// Returns the id of the user on the corresponding platform.
     pub fn get_platform_id(&self) -> Option<&String> {
         match self {
-            UserInfo::Twitch { user_id, .. } => Some(user_id),
+            UserInfo::Twitch { id: user_id, .. } => Some(user_id),
             UserInfo::None => None
         }
     }
@@ -56,8 +53,38 @@ impl UserInfo {
     /// Transforms the [UserInfo] to a unique id over all platforms.
     pub fn to_global_id(&self) -> String {
         match self {
-            UserInfo::Twitch { user_id, .. } => format!("twitch#{}", user_id),
+            UserInfo::Twitch { id: user_id, .. } => format!("twitch#{}", user_id),
             UserInfo::None => String::new()
+        }
+    }
+}
+
+#[cfg(feature = "twitch-api")]
+impl From<crate::twitch_api::users::UserRes> for UserInfo {
+    fn from(res: crate::twitch_api::users::UserRes) -> Self {
+        let username = if res.display_name.is_empty() {
+            res.name
+        } else {
+            res.display_name
+        };
+        UserInfo::Twitch {
+            name: username,
+            id: res.id
+        }
+    }
+}
+
+#[cfg(feature = "twitch-api")]
+impl From<&crate::twitch_api::users::UserRes> for UserInfo {
+    fn from(res: &crate::twitch_api::users::UserRes) -> Self {
+        let username = if res.display_name.is_empty() {
+            &res.name
+        } else {
+            &res.display_name
+        };
+        UserInfo::Twitch {
+            name: username.clone(),
+            id: res.id.clone()
         }
     }
 }
@@ -67,22 +94,25 @@ impl<'a> TryFrom<&'a IrcMessage> for UserInfo {
 
     fn try_from(irc_message: &'a IrcMessage) -> Result<Self, Self::Error> {
         let tags = irc_message.tags()
-            .ok_or(|_| InvalidIrcMessageError::MissingTags(irc_message))?;
+            .ok_or_else(|| InvalidIrcMessageError::MissingTags(irc_message))?;
 
         let user_id = tags.get("user-id")
             .map(|id| id.to_string())
-            .ok_or(|_| InvalidIrcMessageError::MissingUserId(irc_message))?;
+            .ok_or_else(|| InvalidIrcMessageError::MissingUserId(irc_message))?;
 
         let username = tags.get("display-name").map(|display_name| display_name.to_string());
-        let username = username.ok_or(|_| {
-            irc_message.prefix()
-                .map(|prefix| prefix.name().to_string())
-                .ok_or(|_| InvalidIrcMessageError::MissingPrefix(irc_message))
-        })?;
+        let username = match username {
+            None => {
+                irc_message.prefix()
+                    .map(|prefix| prefix.name().to_string())
+                    .ok_or_else(|| InvalidIrcMessageError::MissingPrefix(irc_message))?
+            }
+            Some(username) => username
+        };
 
         Ok(UserInfo::Twitch {
-            username,
-            user_id: user_id.unwrap(),
+            name: username,
+            id: user_id,
         })
     }
 }
