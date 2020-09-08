@@ -3,20 +3,34 @@ use serde::export::Formatter;
 use core::fmt;
 
 pub struct GetUsersReq {
-    usernames: Vec<String>
+    usernames: Vec<String>,
+    base: String,
+    protocol: &'static str
 }
 
 impl GetUsersReq {
     pub fn new(usernames: Vec<String>) -> GetUsersReq {
         GetUsersReq {
-            usernames
+            usernames,
+            base: "api.twitch.tv".to_string(),
+            protocol: "https"
         }
+    }
+
+    pub fn base<S: ToString>(&mut self, base: S) -> &mut Self {
+        self.base = base.to_string();
+        self
+    }
+
+    pub fn tls(&mut self, tls: bool) -> &mut Self {
+        self.protocol = if tls { "https" } else { "http" };
+        self
     }
 }
 
 impl Display for GetUsersReq {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "https://api.twitch.tv/kraken/users?login={}", self.usernames.join(","))
+        write!(f, "{}://{}/kraken/users?login={}", self.protocol, self.base, self.usernames.join(","))
     }
 }
 
