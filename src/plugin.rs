@@ -48,7 +48,11 @@ pub trait Plugin: Send + Sync {
 pub trait StreamablePlugin: Send + Sync {
     /// Create a new Stream sending messages into **output** and receiving messages to
     /// the returned sender.
-    async fn stream(&self, input: UnboundedReceiver<Message>, output: UnboundedSender<Vec<Message>>) -> Result<(), InvocationError>;
+    async fn stream(
+        &self,
+        input: UnboundedReceiver<Message>,
+        output: UnboundedSender<Vec<Message>>,
+    ) -> Result<(), InvocationError>;
 
     fn info(&self) -> PluginInfo;
 }
@@ -61,16 +65,14 @@ pub enum InvocationError {
 
 impl From<String> for InvocationError {
     fn from(other: String) -> Self {
-        InvocationError::Other {
-            msg: other
-        }
+        InvocationError::Other { msg: other }
     }
 }
 
 impl From<&str> for InvocationError {
     fn from(other: &str) -> Self {
         InvocationError::Other {
-            msg: other.to_string()
+            msg: other.to_string(),
         }
     }
 }
@@ -79,7 +81,11 @@ impl Display for InvocationError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             InvocationError::Other { msg } => writeln!(f, "InvocationError: {}", msg),
-            InvocationError::InvalidArgumentCount { expected, found } => writeln!(f, "Invalid argument count: {} (expected {})", found, expected)
+            InvocationError::InvalidArgumentCount { expected, found } => writeln!(
+                f,
+                "Invalid argument count: {} (expected {})",
+                found, expected
+            ),
         }
     }
 }
@@ -95,12 +101,13 @@ macro_rules! export_command {
     ($register:expr) => {
         #[doc(hidden)]
         #[no_mangle]
-        pub static command_declaration: $crate::plugin::CommandDeclaration = $crate::plugin::CommandDeclaration {
-            rustc_version: $crate::RUSTC_VERSION,
-            core_version: $crate::CORE_VERSION,
-            register: $register
-        };
-    }
+        pub static command_declaration: $crate::plugin::CommandDeclaration =
+            $crate::plugin::CommandDeclaration {
+                rustc_version: $crate::RUSTC_VERSION,
+                core_version: $crate::CORE_VERSION,
+                register: $register,
+            };
+    };
 }
 
 pub(crate) struct PluginProxy {
@@ -110,7 +117,11 @@ pub(crate) struct PluginProxy {
 
 #[async_trait]
 impl StreamablePlugin for PluginProxy {
-    async fn stream(&self, input: UnboundedReceiver<Message>, output: UnboundedSender<Vec<Message>>) -> Result<(), InvocationError> {
+    async fn stream(
+        &self,
+        input: UnboundedReceiver<Message>,
+        output: UnboundedSender<Vec<Message>>,
+    ) -> Result<(), InvocationError> {
         self.command.stream(input, output).await
     }
 
@@ -143,10 +154,10 @@ impl PluginRegistrar {
 
 #[cfg(test)]
 mod tests {
-    use bot_rs_core_derive::*;
-    use async_trait::async_trait;
-    use crate::plugin::{Plugin, InvocationError, PluginInfo, StreamablePlugin};
+    use crate::plugin::{InvocationError, Plugin, PluginInfo, StreamablePlugin};
     use crate::Message;
+    use async_trait::async_trait;
+    use bot_rs_core_derive::*;
 
     #[derive(StreamablePlugin)]
     struct TestCommand;
@@ -164,7 +175,7 @@ mod tests {
                 version: "".to_string(),
                 authors: "".to_string(),
                 repo: None,
-                commands: vec![]
+                commands: vec![],
             }
         }
     }

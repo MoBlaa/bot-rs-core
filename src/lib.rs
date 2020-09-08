@@ -244,26 +244,26 @@
 extern crate log;
 #[macro_use]
 extern crate serde;
-#[cfg(feature = "plugin-loader")]
-extern crate rocket;
+extern crate async_trait;
 #[cfg(feature = "derive")]
 extern crate bot_rs_core_derive;
-extern crate async_trait;
+#[cfg(feature = "plugin-loader")]
+extern crate rocket;
 
-#[cfg(feature = "twitch-api")]
-pub mod twitch_api;
 #[cfg(feature = "default")]
 pub mod auth;
-#[cfg(feature = "twitch-api")]
-mod utils;
+#[cfg(feature = "default")]
+pub mod command_access;
 #[cfg(feature = "default")]
 pub mod plugin;
-#[cfg(feature = "default")]
-pub mod profile;
 #[cfg(feature = "plugin-loader")]
 pub mod plugins;
 #[cfg(feature = "default")]
-pub mod command_access;
+pub mod profile;
+#[cfg(feature = "twitch-api")]
+pub mod twitch_api;
+#[cfg(feature = "twitch-api")]
+mod utils;
 
 #[cfg(feature = "derive")]
 pub use bot_rs_core_derive::*;
@@ -280,7 +280,7 @@ pub const ENV_JOINED_CHANNELS: &str = "BRS_JOINED_CHANNELS";
 
 #[derive(Serialize, Deserialize, Clone)]
 pub enum Message {
-    Irc(IrcMessage)
+    Irc(IrcMessage),
 }
 
 impl Display for Message {
@@ -290,7 +290,10 @@ impl Display for Message {
                 let str_msg = msg.to_string();
                 let byte_len = str_msg.bytes().len();
                 if byte_len > 512 {
-                    error!("Raw IRC Message exceeds exceeds 512 Byte length: {}", byte_len);
+                    error!(
+                        "Raw IRC Message exceeds exceeds 512 Byte length: {}",
+                        byte_len
+                    );
                     Err(fmt::Error)
                 } else {
                     write!(f, "{}", msg)

@@ -1,16 +1,16 @@
 use crate::auth::{Credentials, Platform};
-use std::collections::HashMap;
-use dirs_next::config_dir;
-use std::path::PathBuf;
-use std::fs::{read_to_string, read_dir, DirEntry, File, create_dir_all, remove_dir_all};
-use std::{io, error};
-use serde::export::fmt::Display;
-use serde_json::Error as JsonError;
-use serde::export::Formatter;
-use core::fmt;
-use std::ffi::OsString;
-use std::io::Write;
 use crate::command_access::AccessRights;
+use core::fmt;
+use dirs_next::config_dir;
+use serde::export::fmt::Display;
+use serde::export::Formatter;
+use serde_json::Error as JsonError;
+use std::collections::HashMap;
+use std::ffi::OsString;
+use std::fs::{create_dir_all, read_dir, read_to_string, remove_dir_all, DirEntry, File};
+use std::io::Write;
+use std::path::PathBuf;
+use std::{error, io};
 
 const ENV_ACTIVE_PROFILE: &str = "BRS_ACTIVE_PROFILE";
 
@@ -38,7 +38,7 @@ impl error::Error for ProfileError {
         match self {
             ProfileError::IO(source) => Some(source),
             ProfileError::Json(source) => Some(source),
-            ProfileError::AlreadyExists(_) => None
+            ProfileError::AlreadyExists(_) => None,
         }
     }
 }
@@ -48,7 +48,11 @@ impl Display for ProfileError {
         match self {
             ProfileError::IO(why) => write!(f, "failed to read/write config file '{}'", why),
             ProfileError::Json(why) => write!(f, "invalid config file: {}", why),
-            ProfileError::AlreadyExists(name) => write!(f, "profile named '{}' already exists", name.to_str().unwrap())
+            ProfileError::AlreadyExists(name) => write!(
+                f,
+                "profile named '{}' already exists",
+                name.to_str().unwrap()
+            ),
         }
     }
 }
@@ -73,7 +77,12 @@ impl Profile {
         Self::new(String::new(), Vec::new(), String::new(), None)
     }
 
-    pub fn new(name: String, channels: Vec<String>, client_id: String, client_secret: Option<String>) -> Self {
+    pub fn new(
+        name: String,
+        channels: Vec<String>,
+        client_id: String,
+        client_secret: Option<String>,
+    ) -> Self {
         Profile {
             name,
             channels,
@@ -100,7 +109,9 @@ impl Profile {
         &self.channels
     }
 
-    pub fn get_client_id(&self) -> String { self.client_id.clone() }
+    pub fn get_client_id(&self) -> String {
+        self.client_id.clone()
+    }
 
     pub fn get_client_secret(&self) -> Option<String> {
         self.client_secret.clone()
@@ -118,7 +129,10 @@ impl Profile {
         let cfg_file = dir.path().join("config.json");
         let content = read_to_string(cfg_file).map_err(ProfileError::from)?;
         let mut profile: Profile = serde_json::from_str(&content).map_err(ProfileError::from)?;
-        profile.name = dir.file_name().into_string().expect("failed to create string from profile dir name");
+        profile.name = dir
+            .file_name()
+            .into_string()
+            .expect("failed to create string from profile dir name");
 
         Ok(profile)
     }
@@ -160,19 +174,23 @@ impl Profile {
         let mut file = File::create(path.join("config.json")).map_err(ProfileError::from)?;
         file.write(json.as_bytes()).map_err(ProfileError::from)?;
         let plugins_dir = self.plugins_path();
-        create_dir_all(&plugins_dir).expect("failed to create plugins dir inside profile directory");
+        create_dir_all(&plugins_dir)
+            .expect("failed to create plugins dir inside profile directory");
         Ok(())
     }
 
     pub fn delete(&self) -> Result<(), ProfileError> {
-        remove_dir_all(self.path())
-            .map_err(ProfileError::IO)
+        remove_dir_all(self.path()).map_err(ProfileError::IO)
     }
 }
 
 impl Display for Profile {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Location:\t{}", Self::profile_dir(OsString::from(&self.name)).display())?;
+        writeln!(
+            f,
+            "Location:\t{}",
+            Self::profile_dir(OsString::from(&self.name)).display()
+        )?;
         writeln!(f, "Name:\t\t{}", self.name)?;
         if self.credentials.is_empty() {
             write!(f, "Credentials:\tNone")?;
@@ -214,7 +232,11 @@ impl Profiles {
             let path = path.expect("failed to get path of configuration subdir");
             if path.file_type().expect("failed to get file-type").is_dir() {
                 match Profile::from_dir(&path) {
-                    Err(why) => warn!("failed to load profile config '{}': {}", path.path().display(), why),
+                    Err(why) => warn!(
+                        "failed to load profile config '{}': {}",
+                        path.path().display(),
+                        why
+                    ),
                     Ok(profile) => {
                         profiles.insert(path.file_name(), profile);
                     }
@@ -222,9 +244,7 @@ impl Profiles {
             }
         }
 
-        Profiles {
-            profiles
-        }
+        Profiles { profiles }
     }
 
     pub fn add(&mut self, profile: Profile) -> Result<(), ProfileError> {
@@ -270,7 +290,9 @@ pub struct Configs;
 
 impl Configs {
     pub fn cfg_dir() -> PathBuf {
-        config_dir().expect("missing config directory").join("botrs")
+        config_dir()
+            .expect("missing config directory")
+            .join("botrs")
     }
 
     pub fn log_path() -> PathBuf {

@@ -1,11 +1,11 @@
-use std::fmt::Display;
-use serde::export::Formatter;
 use core::fmt;
+use serde::export::Formatter;
+use std::fmt::Display;
 
 pub struct GetUsersReq {
     usernames: Vec<String>,
     base: String,
-    protocol: &'static str
+    protocol: &'static str,
 }
 
 impl GetUsersReq {
@@ -13,7 +13,7 @@ impl GetUsersReq {
         GetUsersReq {
             usernames,
             base: "api.twitch.tv".to_string(),
-            protocol: "https"
+            protocol: "https",
         }
     }
 
@@ -30,7 +30,13 @@ impl GetUsersReq {
 
 impl Display for GetUsersReq {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}://{}/kraken/users?login={}", self.protocol, self.base, self.usernames.join(","))
+        write!(
+            f,
+            "{}://{}/kraken/users?login={}",
+            self.protocol,
+            self.base,
+            self.usernames.join(",")
+        )
     }
 }
 
@@ -38,7 +44,7 @@ impl Display for GetUsersReq {
 pub struct GetUsersRes {
     #[serde(rename = "_total")]
     pub total: usize,
-    pub users: Vec<UserRes>
+    pub users: Vec<UserRes>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -52,5 +58,5 @@ pub struct UserRes {
     pub name: String,
     #[serde(rename = "type")]
     pub typ: String,
-    pub updated_at: String
+    pub updated_at: String,
 }

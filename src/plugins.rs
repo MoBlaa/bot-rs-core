@@ -1,15 +1,17 @@
-use std::sync::Arc;
-use crate::plugin::{StreamablePlugin, InvocationError, PluginInfo, CommandDeclaration, PluginProxy, PluginRegistrar};
-use libloading::Library;
-use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender, unbounded};
-use crate::{Message, RUSTC_VERSION, CORE_VERSION};
-use std::path::PathBuf;
-use std::{io, fs};
-use std::ffi::OsStr;
-use futures::stream::StreamExt;
-use futures::sink::SinkExt;
-use futures::future::join_all;
+use crate::plugin::{
+    CommandDeclaration, InvocationError, PluginInfo, PluginProxy, PluginRegistrar, StreamablePlugin,
+};
+use crate::{Message, CORE_VERSION, RUSTC_VERSION};
 use async_trait::async_trait;
+use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
+use futures::future::join_all;
+use futures::sink::SinkExt;
+use futures::stream::StreamExt;
+use libloading::Library;
+use std::ffi::OsStr;
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::{fs, io};
 
 // Contains all loaded Plugins.
 #[derive(Default)]
@@ -70,13 +72,10 @@ impl Plugins {
     /// This function should only be called with a valid path to a library file.
     unsafe fn load<P: AsRef<OsStr>>(&mut self, library_path: P) -> io::Result<()> {
         // load the library into memory
-        let library = Arc::new(Library::new(library_path)
-            .expect("failed to create new library")
-        );
+        let library = Arc::new(Library::new(library_path).expect("failed to create new library"));
 
         // get a pointer to the plugin_declaration symbol.
-        let decl = match library
-            .get::<*mut CommandDeclaration>(b"command_declaration\0") {
+        let decl = match library.get::<*mut CommandDeclaration>(b"command_declaration\0") {
             Ok(decl) => decl.read(),
             Err(err) => {
                 warn!("failed to load command_declaration skipping; {}", err);
@@ -85,17 +84,22 @@ impl Plugins {
         };
 
         // version checks to prevent accidental ABI incompatibilities
-        if decl.rustc_version != RUSTC_VERSION
-        {
+        if decl.rustc_version != RUSTC_VERSION {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
-                format!("RUSTC version mismatch; botrs: {}, plugin: {}", RUSTC_VERSION, decl.rustc_version),
+                format!(
+                    "RUSTC version mismatch; botrs: {}, plugin: {}",
+                    RUSTC_VERSION, decl.rustc_version
+                ),
             ));
         }
         if decl.core_version != CORE_VERSION {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
-                format!("CORE version mismatch; botrs: {}, plugin: {}", CORE_VERSION, decl.core_version),
+                format!(
+                    "CORE version mismatch; botrs: {}, plugin: {}",
+                    CORE_VERSION, decl.core_version
+                ),
             ));
         }
         trace!("RUSTC and CORE versions match!");
@@ -115,9 +119,11 @@ impl Plugins {
 
 #[async_trait]
 impl StreamablePlugin for Plugins {
-    async fn stream(&self,
-                    mut input: UnboundedReceiver<Message>,
-                    output: UnboundedSender<Vec<Message>>) -> Result<(), InvocationError> {
+    async fn stream(
+        &self,
+        mut input: UnboundedReceiver<Message>,
+        output: UnboundedSender<Vec<Message>>,
+    ) -> Result<(), InvocationError> {
         let mut channel_inputs = Vec::with_capacity(self.commands.len());
         let mut streams = Vec::with_capacity(self.commands.len());
         for cmd in self.commands.iter() {
