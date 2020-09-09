@@ -1,5 +1,5 @@
 use core::fmt;
-use std::fmt::{Display, Formatter, Debug};
+use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -38,7 +38,7 @@ impl Display for PluginInfo {
 
 /// Handles single command invocations immediately returning their result.
 #[async_trait]
-pub trait Plugin: Send + Sync{
+pub trait Plugin: Send + Sync {
     async fn call(&self, message: Message) -> Result<Vec<Message>, InvocationError>;
 
     fn info(&self) -> PluginInfo;
