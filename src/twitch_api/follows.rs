@@ -1,6 +1,6 @@
 use chrono::{DateTime, NaiveDateTime};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
 pub struct Follow {
     pub from_id: String,
     pub from_name: String,
@@ -21,7 +21,7 @@ impl Follow {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
 pub struct GetFollowsRes {
     pub total: usize,
     pub data: Vec<Follow>,

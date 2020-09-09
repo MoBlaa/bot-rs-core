@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 use std::fmt;
 
-#[derive(Deserialize, Serialize, PartialEq, Eq, Debug, Hash, Clone)]
+#[derive(PartialEq, Eq, Debug, Hash, Clone, Serialize, Deserialize)]
 pub enum Platform {
     Twitch,
 }
@@ -29,7 +29,7 @@ impl fmt::Display for InvalidIrcMessageError<'_> {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
 pub enum UserInfo {
     Twitch { name: String, id: String },
     None,
@@ -124,7 +124,7 @@ impl<'a> TryFrom<&'a irc_rust::Message> for UserInfo {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum Credentials {
     OAuthToken { token: String },
     None,

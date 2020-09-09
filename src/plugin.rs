@@ -1,5 +1,5 @@
 use core::fmt;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Display, Formatter, Debug};
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -7,8 +7,10 @@ use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
 use libloading::Library;
 
 use crate::Message;
+use std::error::Error;
 
 /// Contains information about a plugin to identify the supported commands, author information, etc.
+#[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize, Deserialize)]
 pub struct PluginInfo {
     pub name: String,
     pub version: String,
@@ -36,7 +38,7 @@ impl Display for PluginInfo {
 
 /// Handles single command invocations immediately returning their result.
 #[async_trait]
-pub trait Plugin: Send + Sync {
+pub trait Plugin: Send + Sync{
     async fn call(&self, message: Message) -> Result<Vec<Message>, InvocationError>;
 
     fn info(&self) -> PluginInfo;
@@ -45,7 +47,7 @@ pub trait Plugin: Send + Sync {
 /// Allows users to create an asynchronously running stream. This allows commands
 /// to send messages to the output without the need of a command invocation.
 #[async_trait]
-pub trait StreamablePlugin: Send + Sync {
+pub trait StreamablePlugin: Send + Sync + Debug {
     /// Create a new Stream sending messages into **output** and receiving messages to
     /// the returned sender.
     async fn stream(
@@ -57,7 +59,7 @@ pub trait StreamablePlugin: Send + Sync {
     fn info(&self) -> PluginInfo;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq, Clone, Hash, Serialize, Deserialize)]
 pub enum InvocationError {
     InvalidArgumentCount { expected: usize, found: usize },
     Other { msg: String },
@@ -76,6 +78,8 @@ impl From<&str> for InvocationError {
         }
     }
 }
+
+impl Error for InvocationError {}
 
 impl Display for InvocationError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -110,6 +114,7 @@ macro_rules! export_command {
     };
 }
 
+#[derive(Debug, Clone)]
 pub(crate) struct PluginProxy {
     command: Arc<dyn StreamablePlugin>,
     _lib: Arc<Library>,
@@ -130,6 +135,7 @@ impl StreamablePlugin for PluginProxy {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct PluginRegistrar {
     pub(crate) commands: Vec<PluginProxy>,
     lib: Arc<Library>,
@@ -159,7 +165,7 @@ mod tests {
     use async_trait::async_trait;
     use bot_rs_core_derive::*;
 
-    #[derive(StreamablePlugin)]
+    #[derive(Debug, StreamablePlugin)]
     struct TestCommand;
 
     #[async_trait]

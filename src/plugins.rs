@@ -14,7 +14,7 @@ use std::sync::Arc;
 use std::{fs, io};
 
 // Contains all loaded Plugins.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Plugins {
     commands: Vec<PluginProxy>,
     libraries: Vec<Arc<Library>>,

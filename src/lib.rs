@@ -273,7 +273,7 @@ pub const RUSTC_VERSION: &str = env!("RUSTC_VERSION");
 
 pub const ENV_JOINED_CHANNELS: &str = "BRS_JOINED_CHANNELS";
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
 pub enum Message {
     Irc(irc_rust::Message),
 }
@@ -295,5 +295,11 @@ impl Display for Message {
                 }
             }
         }
+    }
+}
+
+impl From<irc_rust::Message> for Message {
+    fn from(irc: irc_rust::Message) -> Self {
+        Message::Irc(irc)
     }
 }

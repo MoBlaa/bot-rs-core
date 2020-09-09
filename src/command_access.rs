@@ -7,7 +7,7 @@ use core::fmt;
 use serde::export::Formatter;
 use std::fmt::Display;
 
-#[derive(Serialize, Deserialize, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct AccessRights {
     /// Maps the name of an access filter to the filter.
     filters: HashMap<String, AccessFilter>,
@@ -50,7 +50,7 @@ impl AccessRights {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
 pub enum AccessFilter {
     /// Checks if a badge mathes the given regex.
     Badge(String),

@@ -2,6 +2,7 @@ use core::fmt;
 use serde::export::Formatter;
 use std::fmt::Display;
 
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct GetUsersReq {
     usernames: Vec<String>,
     base: String,
@@ -40,14 +41,14 @@ impl Display for GetUsersReq {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct GetUsersRes {
     #[serde(rename = "_total")]
     pub total: usize,
     pub users: Vec<UserRes>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct UserRes {
     #[serde(rename = "_id")]
     pub id: String,

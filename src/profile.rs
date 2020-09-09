@@ -62,7 +62,7 @@ impl Display for ProfileError {
 /// Profile configurations are located at `{{ENV_CONFIG_DIR}}/profiles/{profile-name}`.
 ///
 /// A Profile is only allowed to join the channel its named after.
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Clone, Serialize, Deserialize, Debug, Eq, PartialEq)]
 pub struct Profile {
     name: String,
     channels: Vec<String>,
@@ -95,7 +95,7 @@ impl Profile {
 
     pub fn active() -> Option<Self> {
         if let Ok(env_var) = std::env::var(ENV_ACTIVE_PROFILE) {
-            if let Ok(profile) = serde_json::from_str::<Profile>(env_var.as_str()) {
+            if let Ok(profile) = serde_json::from_str(env_var.as_str()) {
                 Some(profile)
             } else {
                 None
@@ -213,6 +213,7 @@ impl Display for Profile {
     }
 }
 
+#[derive(Debug)]
 pub struct Profiles {
     profiles: HashMap<OsString, Profile>,
 }

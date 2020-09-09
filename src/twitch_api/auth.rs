@@ -74,6 +74,7 @@ fn auth_get(
     "Successfully obtained access token! You can close this window now..".to_string()
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct TwitchAuthenticator {
     client_id: String,
     client_secret: Option<String>,
@@ -153,7 +154,7 @@ impl TwitchAuthenticator {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum AuthRequest {
     /// [](https://dev.twitch.tv/docs/authentication/getting-tokens-oauth#oauth-implicit-code-flow) requiring GET.
     ImplicitCode {
@@ -179,7 +180,7 @@ pub enum AuthRequest {
     },
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 struct TwitchValidation {
     client_id: String,
     login: String,
