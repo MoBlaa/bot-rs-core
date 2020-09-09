@@ -53,8 +53,6 @@
 //!
 //!     use async_trait::async_trait;
 //!
-//!     use irc_rust::message::Message as IrcMessage;
-//!
 //!     use bot_rs_core::Message;
 //!     use bot_rs_core::plugin::{StreamablePlugin, Plugin, InvocationError, PluginInfo, PluginRegistrar};
 //!     use std::sync::Arc;
@@ -92,11 +90,12 @@
 //!                             let prefix = irc_message.prefix().expect("missing prefix in PRIVMSG");
 //!                             let name = prefix.name();
 //!
-//!                             Ok(vec![Message::Irc(IrcMessage::builder()
+//!                             Ok(vec![Message::Irc(irc_rust::Message::builder()
 //!                                 .command("PRIVMSG")
 //!                                 .param(channel)
 //!                                 .trailing(&format!("Hello, @{}!", name))
 //!                                 .build()
+//!                                 .expect("failed to build irc message")
 //!                             )])
 //!                         }
 //!                     }
@@ -177,8 +176,6 @@
 //!     extern crate bot_rs_core;
 //!
 //!     use async_trait::async_trait;
-//!
-//!     use irc_rust::message::Message as IrcMessage;
 //!
 //!     use bot_rs_core::Message;
 //!     use bot_rs_core::plugin::{StreamablePlugin, Plugin, InvocationError, PluginInfo, PluginRegistrar};
@@ -271,8 +268,6 @@ pub use bot_rs_core_derive::*;
 use core::fmt;
 use std::fmt::{Display, Formatter};
 
-use irc_rust::message::Message as IrcMessage;
-
 pub const CORE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const RUSTC_VERSION: &str = env!("RUSTC_VERSION");
 
@@ -280,7 +275,7 @@ pub const ENV_JOINED_CHANNELS: &str = "BRS_JOINED_CHANNELS";
 
 #[derive(Serialize, Deserialize, Clone)]
 pub enum Message {
-    Irc(IrcMessage),
+    Irc(irc_rust::Message),
 }
 
 impl Display for Message {

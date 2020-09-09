@@ -1,4 +1,3 @@
-use irc_rust::message::Message as IrcMessage;
 use std::convert::TryFrom;
 use std::fmt;
 
@@ -9,9 +8,9 @@ pub enum Platform {
 
 #[derive(Debug, Clone)]
 pub enum InvalidIrcMessageError<'a> {
-    MissingTags(&'a IrcMessage),
-    MissingUserId(&'a IrcMessage),
-    MissingPrefix(&'a IrcMessage),
+    MissingTags(&'a irc_rust::Message),
+    MissingUserId(&'a irc_rust::Message),
+    MissingPrefix(&'a irc_rust::Message),
 }
 
 impl fmt::Display for InvalidIrcMessageError<'_> {
@@ -92,12 +91,13 @@ impl From<&crate::twitch_api::users::UserRes> for UserInfo {
     }
 }
 
-impl<'a> TryFrom<&'a IrcMessage> for UserInfo {
+impl<'a> TryFrom<&'a irc_rust::Message> for UserInfo {
     type Error = InvalidIrcMessageError<'a>;
 
-    fn try_from(irc_message: &'a IrcMessage) -> Result<Self, Self::Error> {
+    fn try_from(irc_message: &'a irc_rust::Message) -> Result<Self, Self::Error> {
         let tags = irc_message
             .tags()
+            .expect("invalid irc message")
             .ok_or_else(|| InvalidIrcMessageError::MissingTags(irc_message))?;
 
         let user_id = tags
@@ -111,6 +111,7 @@ impl<'a> TryFrom<&'a IrcMessage> for UserInfo {
         let username = match username {
             None => irc_message
                 .prefix()
+                .expect("invalid irc message")
                 .map(|prefix| prefix.name().to_string())
                 .ok_or_else(|| InvalidIrcMessageError::MissingPrefix(irc_message))?,
             Some(username) => username,

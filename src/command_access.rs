@@ -32,7 +32,7 @@ impl AccessRights {
         match mssg {
             Message::Irc(irc_mssg) => irc_mssg
                 .params()
-                .and_then(|params| params.trailing)
+                .and_then(|params| params.trailing())
                 .and_then(|trailing| {
                     let trailing = trailing.trim_start();
                     if AccessFilter::broadcaster().matches(mssg) {
@@ -66,6 +66,7 @@ impl AccessFilter {
             AccessFilter::Badge(regex) => match mssg {
                 Message::Irc(mssg) => mssg
                     .tags()
+                    .expect("invalid irc message format")
                     .and_then(|tags| tags.get("badges"))
                     .map(|badges| {
                         badges.split(',').any(|badge| {

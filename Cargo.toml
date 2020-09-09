@@ -16,7 +16,7 @@ twitch-api = ["chrono", "rocket", "url", "reqwest"] # This may be better exporte
 derive = ["bot-rs-core-derive"]
 
 [dependencies]
-irc-rust = "0.2.1"
+irc-rust = "0.3.1"
 async-trait = "0.1.40"
 futures = "0.3.5"
 libloading = "0.6.2"
