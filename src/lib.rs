@@ -90,8 +90,7 @@
 //!                             let prefix = irc_message.prefix().expect("missing prefix in PRIVMSG");
 //!                             let name = prefix.name();
 //!
-//!                             Ok(vec![Message::Irc(irc_rust::Message::builder()
-//!                                 .command("PRIVMSG")
+//!                             Ok(vec![Message::Irc(irc_rust::Message::builder("PRIVMSG")
 //!                                 .param(channel)
 //!                                 .trailing(&format!("Hello, @{}!", name))
 //!                                 .build()
