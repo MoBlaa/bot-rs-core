@@ -7,6 +7,7 @@ repository = "https://github.com/MoBlaa/bot-rs-core.git"
 description = "Core library for implementing plugins and plugin-loaders for chatbots"
 license = "MIT"
 keywords = ["twitch", "chatbot"]
+categories = ["web-programming"]
 publish = true
 
 [features]

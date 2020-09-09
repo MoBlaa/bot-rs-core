@@ -1,4 +1,5 @@
 #![feature(proc_macro_hygiene, decl_macro)]
+#![deny(clippy::all)]
 
 //!# Bot-RS Core
 //!
