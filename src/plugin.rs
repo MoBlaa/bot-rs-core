@@ -182,7 +182,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_compile() -> Result<(), InvocationError> {
-        let message = Message::Irc(irc_rust::message::Message::new("CMD :test".to_string()));
+        let message = Message::Irc(irc_rust::Message::from("CMD :test".to_string()));
         let result = TestCommand.call(message).await?;
         assert!(result.is_empty());
         Ok(())
