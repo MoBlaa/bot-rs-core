@@ -1,4 +1,4 @@
-use crate::auth::{Credentials, UserInfo, ValidationError};
+use crate::auth::{Authenticator, Credentials, UserInfo, ValidationError};
 use crate::utils::rand_alphanumeric;
 use chrono::{Duration, Local};
 use core::fmt;
@@ -87,8 +87,11 @@ impl TwitchAuthenticator {
             client_secret,
         }
     }
+}
 
-    pub fn authenticate(&self) -> Credentials {
+#[async_trait]
+impl Authenticator for TwitchAuthenticator {
+    async fn authenticate(&self) -> Credentials {
         let req = AuthRequest::new(self.client_id.clone(), self.client_secret.clone());
         info!(
             "For authentication please grant Nemabot access to the Bots Twitch account at: '{}'",
@@ -118,7 +121,7 @@ impl TwitchAuthenticator {
         auth.take().unwrap()
     }
 
-    pub async fn validate(&self, cred: &Credentials) -> Result<UserInfo, ValidationError> {
+    async fn validate(&self, cred: &Credentials) -> Result<UserInfo, ValidationError> {
         let client = reqwest::Client::new();
         let header = match cred {
             Credentials::OAuthToken { token } => format!("OAuth {}", token),

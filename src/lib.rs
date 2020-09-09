@@ -241,6 +241,7 @@
 extern crate log;
 #[macro_use]
 extern crate serde;
+#[macro_use]
 extern crate async_trait;
 #[cfg(feature = "derive")]
 extern crate bot_rs_core_derive;
