@@ -1,4 +1,5 @@
 #![feature(proc_macro_hygiene, decl_macro)]
+#![feature(test)]
 #![deny(clippy::all)]
 
 //!# Bot-RS Core
@@ -247,6 +248,8 @@ extern crate async_trait;
 extern crate bot_rs_core_derive;
 #[cfg(feature = "plugin-loader")]
 extern crate rocket;
+#[cfg(test)]
+extern crate test;
 
 #[cfg(feature = "default")]
 pub mod auth;
