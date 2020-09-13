@@ -29,7 +29,7 @@ impl fmt::Display for InvalidIrcMessageError<'_> {
     }
 }
 
-#[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize, Hash)]
 pub enum UserInfo {
     Twitch { name: String, id: String },
     None,
