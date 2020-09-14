@@ -29,11 +29,17 @@ impl GetUsersReq {
     }
 }
 
-impl<I> From<I> for GetUsersReq where I: IntoIterator, I::Item: ToString {
+impl<I> From<I> for GetUsersReq
+where
+    I: IntoIterator,
+    I::Item: ToString,
+{
     fn from(iter: I) -> Self {
-        GetUsersReq::new(iter.into_iter()
-            .map(|item| item.to_string())
-            .collect::<Vec<_>>())
+        GetUsersReq::new(
+            iter.into_iter()
+                .map(|item| item.to_string())
+                .collect::<Vec<_>>(),
+        )
     }
 }
 
@@ -76,7 +82,11 @@ mod tests {
 
     #[test]
     fn test_from_iter() {
-        let items = vec![String::from("name1"), String::from("name2"), String::from("name3")];
+        let items = vec![
+            String::from("name1"),
+            String::from("name2"),
+            String::from("name3"),
+        ];
 
         let req = GetUsersReq::from(items.clone());
         assert_eq!(req.usernames, items);
@@ -88,14 +98,23 @@ mod tests {
     #[test]
     fn test_build_getuserreq() {
         let req = GetUsersReq::new(vec!["name1".to_string(), "name2".to_string()]);
-        assert_eq!(req.to_string(), "https://api.twitch.tv/kraken/users?login=name1,name2".to_string());
+        assert_eq!(
+            req.to_string(),
+            "https://api.twitch.tv/kraken/users?login=name1,name2".to_string()
+        );
 
         let mut req = GetUsersReq::new(vec!["name1".to_string(), "name2".to_string()]);
         req.base("localhost:8080");
-        assert_eq!(req.to_string(), "https://localhost:8080/kraken/users?login=name1,name2".to_string());
+        assert_eq!(
+            req.to_string(),
+            "https://localhost:8080/kraken/users?login=name1,name2".to_string()
+        );
 
         let mut req = GetUsersReq::new(vec!["name1".to_string(), "name2".to_string()]);
         req.base("localhost:8080").tls(false);
-        assert_eq!(req.to_string(), "http://localhost:8080/kraken/users?login=name1,name2".to_string());
+        assert_eq!(
+            req.to_string(),
+            "http://localhost:8080/kraken/users?login=name1,name2".to_string()
+        );
     }
 }

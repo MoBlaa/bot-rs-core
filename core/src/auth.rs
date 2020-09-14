@@ -140,8 +140,8 @@ impl fmt::Display for Credentials {
 }
 
 impl<S> From<S> for Credentials
-    where
-        S: AsRef<str>,
+where
+    S: AsRef<str>,
 {
     fn from(t: S) -> Self {
         let s_t = t.as_ref();
@@ -177,7 +177,7 @@ mod tests {
             Credentials::OAuthToken {
                 token: "thisisatoken".to_string()
             }
-                .to_string(),
+            .to_string(),
             "oauth:thisisatoken"
         );
         assert_eq!(
@@ -189,14 +189,14 @@ mod tests {
     }
 
     mod userinfo {
-        use crate::auth::{UserInfo, InvalidIrcMessageError};
+        use crate::auth::{InvalidIrcMessageError, UserInfo};
         use std::convert::TryFrom;
 
         #[test]
         fn test_platform_name() {
             let userinfo = UserInfo::Twitch {
                 name: "name".to_string(),
-                id: "id".to_string()
+                id: "id".to_string(),
             };
             assert_eq!(userinfo.get_platform_name(), Some(&"name".to_string()));
         }
@@ -205,7 +205,7 @@ mod tests {
         fn test_platform_id() {
             let userinfo = UserInfo::Twitch {
                 name: "name".to_string(),
-                id: "id".to_string()
+                id: "id".to_string(),
             };
             assert_eq!(userinfo.get_platform_id(), Some(&"id".to_string()));
         }
@@ -214,21 +214,34 @@ mod tests {
         fn test_irc_no_tags() {
             let no_tags_message = irc_rust::Message::builder("PRIVMSG").build();
             let result = UserInfo::try_from(&no_tags_message);
-            assert_eq!(result, Err(InvalidIrcMessageError::MissingTags(&no_tags_message)));
+            assert_eq!(
+                result,
+                Err(InvalidIrcMessageError::MissingTags(&no_tags_message))
+            );
         }
 
         #[test]
         fn test_irc_no_userid() {
-            let no_user_id = irc_rust::Message::builder("PRIVMSG").tag("id", "messageid1").build();
+            let no_user_id = irc_rust::Message::builder("PRIVMSG")
+                .tag("id", "messageid1")
+                .build();
             let result = UserInfo::try_from(&no_user_id);
-            assert_eq!(result, Err(InvalidIrcMessageError::MissingUserId(&no_user_id)));
+            assert_eq!(
+                result,
+                Err(InvalidIrcMessageError::MissingUserId(&no_user_id))
+            );
         }
 
         #[test]
         fn test_irc_no_prefix() {
-            let no_user_id = irc_rust::Message::builder("PRIVMSG").tag("user-id", "userid1").build();
+            let no_user_id = irc_rust::Message::builder("PRIVMSG")
+                .tag("user-id", "userid1")
+                .build();
             let result = UserInfo::try_from(&no_user_id);
-            assert_eq!(result, Err(InvalidIrcMessageError::MissingPrefix(&no_user_id)));
+            assert_eq!(
+                result,
+                Err(InvalidIrcMessageError::MissingPrefix(&no_user_id))
+            );
         }
 
         #[test]
@@ -238,7 +251,13 @@ mod tests {
                 .prefix("username", None, None)
                 .build();
             let result = UserInfo::try_from(&no_user_id);
-            assert_eq!(result, Ok(UserInfo::Twitch { name: "username".to_string(), id: "userid1".to_string() }));
+            assert_eq!(
+                result,
+                Ok(UserInfo::Twitch {
+                    name: "username".to_string(),
+                    id: "userid1".to_string()
+                })
+            );
         }
 
         #[test]
@@ -248,7 +267,13 @@ mod tests {
                 .tag("display-name", "username")
                 .build();
             let result = UserInfo::try_from(&no_user_id);
-            assert_eq!(result, Ok(UserInfo::Twitch { name: "username".to_string(), id: "userid1".to_string() }));
+            assert_eq!(
+                result,
+                Ok(UserInfo::Twitch {
+                    name: "username".to_string(),
+                    id: "userid1".to_string()
+                })
+            );
         }
     }
 }
