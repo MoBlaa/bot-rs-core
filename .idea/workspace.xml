@@ -23,8 +23,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9460feef-826a-42bf-829e-06fadfbecf54" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.github/workflows/bench.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/bench.yml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/src/plugins.rs" beforeDir="false" afterPath="$PROJECT_DIR$/core/src/plugins.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -69,17 +69,6 @@
     </key>
   </component>
   <component name="RunManager" selected="Cargo Command.Bench plugins::tests">
-    <configuration default="true" type="ArquillianJUnit" factoryName="" nameIsGenerated="true">
-      <option name="arquillianRunConfiguration">
-        <value>
-          <option name="containerStateName" value="" />
-        </value>
-      </option>
-      <option name="TEST_OBJECT" value="class" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="Bench plugins::tests" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="channel" value="DEFAULT" />
       <option name="command" value="bench --package bot-rs-core --lib plugins::tests --all-features" />
@@ -210,6 +199,7 @@
   </component>
   <component name="RustProjectSettings">
     <option name="toolchainHomeDirectory" value="$USER_HOME$/.cargo/bin" />
+    <option name="version" value="2" />
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
@@ -220,6 +210,7 @@
       <option name="presentableId" value="Default" />
       <updated>1600071999704</updated>
       <workItem from="1600072000750" duration="9377000" />
+      <workItem from="1600081739302" duration="74000" />
     </task>
     <task id="LOCAL-00001" summary="custom workspace for core library">
       <created>1600072874072</created>
@@ -293,6 +284,7 @@
         </entry>
       </map>
     </option>
+    <option name="oldMeFiltersMigrated" value="true" />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="custom workspace for core library" />
