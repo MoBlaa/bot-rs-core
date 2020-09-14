@@ -22,10 +22,7 @@
     <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9460feef-826a-42bf-829e-06fadfbecf54" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.github/workflows/bench.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/bench.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-    </list>
+    <list default="true" id="9460feef-826a-42bf-829e-06fadfbecf54" name="Default Changelist" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -268,7 +265,14 @@
       <option name="project" value="LOCAL" />
       <updated>1600080822282</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="fixed workaround replacement of double colons">
+      <created>1600082282531</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1600082282531</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -295,7 +299,8 @@
     <MESSAGE value="added benchmark for testing plugins delegation" />
     <MESSAGE value="added benchmark for threaded tokio scheduler" />
     <MESSAGE value="added benchmarks for having multiple messages" />
-    <option name="LAST_COMMIT_MESSAGE" value="added benchmarks for having multiple messages" />
+    <MESSAGE value="fixed workaround replacement of double colons" />
+    <option name="LAST_COMMIT_MESSAGE" value="fixed workaround replacement of double colons" />
   </component>
   <component name="WindowStateProjectService">
     <state x="5571" y="565" width="1099" height="1006" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1600079488537">
@@ -326,10 +331,10 @@
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
     <state width="2235" height="611" key="GridCell.Tab.0.right/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600081306274" />
-    <state x="4195" y="691" width="1200" height="785" key="Vcs.Push.Dialog.v2" timestamp="1600074070672">
+    <state x="4195" y="691" width="1200" height="785" key="Vcs.Push.Dialog.v2" timestamp="1600082283932">
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
-    <state x="4195" y="691" width="1200" height="785" key="Vcs.Push.Dialog.v2/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600074070672" />
+    <state x="4195" y="691" width="1200" height="785" key="Vcs.Push.Dialog.v2/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600082283932" />
     <state x="5069" y="962" width="609" height="243" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1600076825585">
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
