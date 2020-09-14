@@ -193,6 +193,24 @@ mod tests {
         use std::convert::TryFrom;
 
         #[test]
+        fn test_platform_name() {
+            let userinfo = UserInfo::Twitch {
+                name: "name".to_string(),
+                id: "id".to_string()
+            };
+            assert_eq!(userinfo.get_platform_name(), Some(&"name".to_string()));
+        }
+
+        #[test]
+        fn test_platform_id() {
+            let userinfo = UserInfo::Twitch {
+                name: "name".to_string(),
+                id: "id".to_string()
+            };
+            assert_eq!(userinfo.get_platform_id(), Some(&"id".to_string()));
+        }
+
+        #[test]
         fn test_irc_no_tags() {
             let no_tags_message = irc_rust::Message::builder("PRIVMSG").build();
             let result = UserInfo::try_from(&no_tags_message);
