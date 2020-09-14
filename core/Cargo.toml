@@ -9,6 +9,7 @@ license = "MIT"
 keywords = ["twitch", "chatbot"]
 categories = ["web-programming"]
 publish = true
+readme = "../README.md"
 
 [features]
 default = []
