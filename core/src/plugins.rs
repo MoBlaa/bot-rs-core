@@ -127,12 +127,16 @@ impl StreamablePlugin for Plugins {
         output: UnboundedSender<Vec<Message>>,
     ) -> Result<(), InvocationError> {
         let mut channel_inputs = Vec::with_capacity(self.commands.len());
-        let mut streams = Vec::with_capacity(self.commands.len());
         for cmd in self.commands.iter() {
             let (write, read) = unbounded();
-            let stream = cmd.stream(read, output.clone());
+            let cmd = cmd.clone();
+            let output = output.clone();
+            tokio::spawn(async move {
+                if let Err(e) = cmd.stream(read, output).await {
+                    error!("Error from plugin {}: {:?}", cmd.info().name, e);
+                }
+            });
             channel_inputs.push(write);
-            streams.push(stream);
         }
         tokio::spawn(async move {
             while let Some(msg) = input.next().await {
@@ -144,7 +148,6 @@ impl StreamablePlugin for Plugins {
                 join_all(sends).await;
             }
         });
-        join_all(streams).await;
         Ok(())
     }
 
