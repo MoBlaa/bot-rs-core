@@ -197,7 +197,7 @@ mod tests {
     fn bench_plugins(b: &mut Bencher, mut runtime: Runtime, plugin_count: usize, load: usize) {
         let mut raw_plugins = Vec::with_capacity(plugin_count);
         for _ in 0..plugin_count {
-                raw_plugins.push(PluginProxy::from(Arc::new(TestCommand)));
+            raw_plugins.push(PluginProxy::from(Arc::new(TestCommand)));
         }
         let plugins = Plugins {
             commands: raw_plugins,
