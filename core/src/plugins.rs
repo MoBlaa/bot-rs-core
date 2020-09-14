@@ -169,7 +169,7 @@ mod tests {
     use futures::{SinkExt, StreamExt};
     use std::sync::Arc;
     use test::Bencher;
-    use tokio::runtime::Builder;
+    use tokio::runtime::{Builder, Runtime};
 
     #[derive(Debug, StreamablePlugin)]
     struct TestCommand;
@@ -191,14 +191,13 @@ mod tests {
         }
     }
 
-    #[bench]
-    fn bench_plugins_basic_scheduler(b: &mut Bencher) {
-        let mut runtime = Builder::new()
-            .basic_scheduler()
-            .build()
-            .expect("failed to build test runtime");
+    fn bench_plugins(b: &mut Bencher, mut runtime: Runtime, plugin_count: usize, load: usize) {
+        let mut raw_plugins = Vec::with_capacity(plugin_count);
+        for _ in 0..plugin_count {
+                raw_plugins.push(PluginProxy::from(Arc::new(TestCommand)));
+        }
         let plugins = Plugins {
-            commands: vec![PluginProxy::from(Arc::new(TestCommand))],
+            commands: raw_plugins,
             libraries: vec![],
         };
         let (mut input_sender, input_receiver) = futures::channel::mpsc::unbounded::<Message>();
@@ -212,38 +211,88 @@ mod tests {
         let message = Message::Irc(irc_rust::Message::from("PRIVMSG :hello"));
 
         b.iter(|| {
-            runtime.block_on(input_sender.send(message.clone())).unwrap();
-            let result = runtime.block_on(output_receiver.next());
-            assert!(result.is_some());
-            assert!(result.unwrap().is_empty());
+            runtime.block_on(async {
+                for _ in 0..load {
+                    input_sender.send(message.clone()).await.unwrap();
+                }
+                for _ in 0..(plugin_count * load) {
+                    let result = output_receiver.next().await;
+                    assert!(result.is_some());
+                    assert!(result.unwrap().is_empty());
+                }
+            });
         });
     }
 
     #[bench]
-    fn bench_plugins_threaded_scheduler(b: &mut Bencher) {
-        let mut runtime = Builder::new()
+    fn bench_1_plugin_basic_scheduler(b: &mut Bencher) {
+        let runtime = Builder::new()
+            .basic_scheduler()
+            .build()
+            .expect("failed to build test runtime");
+        bench_plugins(b, runtime, 1, 1);
+    }
+
+    #[bench]
+    fn bench_1_plugin_threaded_scheduler(b: &mut Bencher) {
+        let runtime = Builder::new()
             .threaded_scheduler()
             .build()
             .expect("failed to build test runtime");
-        let plugins = Plugins {
-            commands: vec![PluginProxy::from(Arc::new(TestCommand))],
-            libraries: vec![],
-        };
-        let (mut input_sender, input_receiver) = futures::channel::mpsc::unbounded::<Message>();
-        let (output_sender, mut output_receiver) =
-            futures::channel::mpsc::unbounded::<Vec<Message>>();
+        bench_plugins(b, runtime, 1, 1);
+    }
 
-        runtime.spawn(async move {
-            plugins.stream(input_receiver, output_sender).await.unwrap();
-        });
+    #[bench]
+    fn bench_1_plugin_basic_scheduler_100_load(b: &mut Bencher) {
+        let runtime = Builder::new()
+            .basic_scheduler()
+            .build()
+            .expect("failed to build test runtime");
+        bench_plugins(b, runtime, 1, 100);
+    }
 
-        let message = Message::Irc(irc_rust::Message::from("PRIVMSG :hello"));
+    #[bench]
+    fn bench_1_plugin_threaded_scheduler_100_load(b: &mut Bencher) {
+        let runtime = Builder::new()
+            .threaded_scheduler()
+            .build()
+            .expect("failed to build test runtime");
+        bench_plugins(b, runtime, 1, 100);
+    }
 
-        b.iter(|| {
-            runtime.block_on(input_sender.send(message.clone())).unwrap();
-            let result = runtime.block_on(output_receiver.next());
-            assert!(result.is_some());
-            assert!(result.unwrap().is_empty());
-        });
+    #[bench]
+    fn bench_64_plugin_basic_scheduler(b: &mut Bencher) {
+        let runtime = Builder::new()
+            .basic_scheduler()
+            .build()
+            .expect("failed to build test runtime");
+        bench_plugins(b, runtime, 64, 1);
+    }
+
+    #[bench]
+    fn bench_64_plugin_threaded_scheduler(b: &mut Bencher) {
+        let runtime = Builder::new()
+            .threaded_scheduler()
+            .build()
+            .expect("failed to build test runtime");
+        bench_plugins(b, runtime, 64, 1);
+    }
+
+    #[bench]
+    fn bench_64_plugin_basic_scheduler_100_load(b: &mut Bencher) {
+        let runtime = Builder::new()
+            .basic_scheduler()
+            .build()
+            .expect("failed to build test runtime");
+        bench_plugins(b, runtime, 64, 100);
+    }
+
+    #[bench]
+    fn bench_64_plugin_threaded_scheduler_10msload(b: &mut Bencher) {
+        let runtime = Builder::new()
+            .threaded_scheduler()
+            .build()
+            .expect("failed to build test runtime");
+        bench_plugins(b, runtime, 64, 100);
     }
 }

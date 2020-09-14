@@ -68,7 +68,7 @@
       <recent name="$PROJECT_DIR$/.github" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo Command.Bench plugins::tests">
+  <component name="RunManager" selected="Cargo Command.test">
     <configuration default="true" type="ArquillianJUnit" factoryName="" nameIsGenerated="true">
       <option name="arquillianRunConfiguration">
         <value>
@@ -178,7 +178,7 @@
     </configuration>
     <configuration name="test" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="channel" value="DEFAULT" />
-      <option name="command" value="test --all --all-features" />
+      <option name="command" value="test --all-features" />
       <option name="allFeatures" value="false" />
       <option name="emulateTerminal" value="false" />
       <option name="backtrace" value="SHORT" />
@@ -219,7 +219,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1600071999704</updated>
-      <workItem from="1600072000750" duration="4513000" />
+      <workItem from="1600072000750" duration="8706000" />
     </task>
     <task id="LOCAL-00001" summary="custom workspace for core library">
       <created>1600072874072</created>
@@ -263,7 +263,14 @@
       <option name="project" value="LOCAL" />
       <updated>1600076323395</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="added benchmark for threaded tokio scheduler">
+      <created>1600076551750</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1600076551750</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -287,13 +294,14 @@
     <MESSAGE value="added badges" />
     <MESSAGE value="added missing readme to core" />
     <MESSAGE value="added benchmark for testing plugins delegation" />
-    <option name="LAST_COMMIT_MESSAGE" value="added benchmark for testing plugins delegation" />
+    <MESSAGE value="added benchmark for threaded tokio scheduler" />
+    <option name="LAST_COMMIT_MESSAGE" value="added benchmark for threaded tokio scheduler" />
   </component>
   <component name="WindowStateProjectService">
-    <state x="5571" y="565" width="1099" height="1006" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1600076517216">
+    <state x="5571" y="565" width="1099" height="1006" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1600079488537">
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
-    <state x="5571" y="565" width="1099" height="1006" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600076517216" />
+    <state x="5571" y="565" width="1099" height="1006" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600079488537" />
     <state x="4514" y="665" width="561" height="837" key="#com.intellij.ide.util.MemberChooser" timestamp="1600075140704">
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
@@ -302,26 +310,30 @@
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
     <state x="4476" y="742" width="636" height="719" key="FileChooserDialogImpl/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600072822230" />
-    <state width="3008" height="611" key="GridCell.Tab.0.bottom" timestamp="1600076499393">
+    <state width="2235" height="611" key="GridCell.Tab.0.bottom" timestamp="1600080699362">
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
-    <state width="3008" height="611" key="GridCell.Tab.0.bottom/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600076499393" />
-    <state width="3008" height="611" key="GridCell.Tab.0.center" timestamp="1600076499393">
+    <state width="2235" height="611" key="GridCell.Tab.0.bottom/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600080699361" />
+    <state width="2235" height="611" key="GridCell.Tab.0.center" timestamp="1600080699361">
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
-    <state width="3008" height="611" key="GridCell.Tab.0.center/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600076499393" />
-    <state width="3008" height="611" key="GridCell.Tab.0.left" timestamp="1600076499393">
+    <state width="2235" height="611" key="GridCell.Tab.0.center/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600080699361" />
+    <state width="2235" height="611" key="GridCell.Tab.0.left" timestamp="1600080699361">
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
-    <state width="3008" height="611" key="GridCell.Tab.0.left/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600076499393" />
-    <state width="3008" height="611" key="GridCell.Tab.0.right" timestamp="1600076499393">
+    <state width="2235" height="611" key="GridCell.Tab.0.left/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600080699361" />
+    <state width="2235" height="611" key="GridCell.Tab.0.right" timestamp="1600080699361">
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
-    <state width="3008" height="611" key="GridCell.Tab.0.right/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600076499393" />
+    <state width="2235" height="611" key="GridCell.Tab.0.right/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600080699361" />
     <state x="4195" y="691" width="1200" height="785" key="Vcs.Push.Dialog.v2" timestamp="1600074070672">
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
     <state x="4195" y="691" width="1200" height="785" key="Vcs.Push.Dialog.v2/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600074070672" />
+    <state x="5069" y="962" width="609" height="243" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1600076825585">
+      <screen x="3840" y="0" width="3840" height="2160" />
+    </state>
+    <state x="5069" y="962" width="609" height="243" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600076825585" />
     <state x="4293" y="492" width="1009" height="1470" key="search.everywhere.popup" timestamp="1600075895003">
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
