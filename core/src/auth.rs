@@ -140,8 +140,8 @@ impl fmt::Display for Credentials {
 }
 
 impl<S> From<S> for Credentials
-where
-    S: AsRef<str>,
+    where
+        S: AsRef<str>,
 {
     fn from(t: S) -> Self {
         let s_t = t.as_ref();
@@ -177,7 +177,7 @@ mod tests {
             Credentials::OAuthToken {
                 token: "thisisatoken".to_string()
             }
-            .to_string(),
+                .to_string(),
             "oauth:thisisatoken"
         );
         assert_eq!(
@@ -200,10 +200,37 @@ mod tests {
         }
 
         #[test]
-        fn test_irc_id() {
+        fn test_irc_no_userid() {
             let no_user_id = irc_rust::Message::builder("PRIVMSG").tag("id", "messageid1").build();
             let result = UserInfo::try_from(&no_user_id);
             assert_eq!(result, Err(InvalidIrcMessageError::MissingUserId(&no_user_id)));
+        }
+
+        #[test]
+        fn test_irc_no_prefix() {
+            let no_user_id = irc_rust::Message::builder("PRIVMSG").tag("user-id", "userid1").build();
+            let result = UserInfo::try_from(&no_user_id);
+            assert_eq!(result, Err(InvalidIrcMessageError::MissingPrefix(&no_user_id)));
+        }
+
+        #[test]
+        fn test_irc_with_prefix() {
+            let no_user_id = irc_rust::Message::builder("PRIVMSG")
+                .tag("user-id", "userid1")
+                .prefix("username", None, None)
+                .build();
+            let result = UserInfo::try_from(&no_user_id);
+            assert_eq!(result, Ok(UserInfo::Twitch { name: "username".to_string(), id: "userid1".to_string() }));
+        }
+
+        #[test]
+        fn test_irc_with_display_name() {
+            let no_user_id = irc_rust::Message::builder("PRIVMSG")
+                .tag("user-id", "userid1")
+                .tag("display-name", "username")
+                .build();
+            let result = UserInfo::try_from(&no_user_id);
+            assert_eq!(result, Ok(UserInfo::Twitch { name: "username".to_string(), id: "userid1".to_string() }));
         }
     }
 }
