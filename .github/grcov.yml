@@ -1,0 +1,8 @@
+branch: false
+ignore-not-existing: true
+llvm: true
+filter: covered
+output-type: lcov
+ignore:
+  - "../*"
+  - "/*"
