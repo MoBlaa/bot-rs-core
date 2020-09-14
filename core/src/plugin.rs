@@ -164,9 +164,9 @@ mod tests {
     use crate::Message;
     use async_trait::async_trait;
     use bot_rs_core_derive::*;
+    use futures::{SinkExt, StreamExt};
     use test::Bencher;
     use tokio::runtime::Builder;
-    use futures::{SinkExt, StreamExt};
 
     #[derive(Debug, StreamablePlugin)]
     struct TestCommand;
@@ -199,10 +199,9 @@ mod tests {
     #[bench]
     fn bench_derive_delegation(b: &mut Bencher) {
         let (mut input_sender, input_receiver) = futures::channel::mpsc::unbounded::<Message>();
-        let (output_sender, mut output_receiver) = futures::channel::mpsc::unbounded::<Vec<Message>>();
-        let mut runtime = Builder::new()
-            .basic_scheduler()
-            .build().unwrap();
+        let (output_sender, mut output_receiver) =
+            futures::channel::mpsc::unbounded::<Vec<Message>>();
+        let mut runtime = Builder::new().basic_scheduler().build().unwrap();
 
         runtime.spawn(async move {
             let plugin = TestCommand;
@@ -212,7 +211,9 @@ mod tests {
         let message = Message::Irc(irc_rust::Message::builder("PRIVMSG").build());
 
         b.iter(|| {
-            runtime.block_on(input_sender.send(message.clone())).unwrap();
+            runtime
+                .block_on(input_sender.send(message.clone()))
+                .unwrap();
             let result = runtime.block_on(output_receiver.next());
             assert!(result.is_some());
             assert!(result.unwrap().is_empty());
@@ -221,9 +222,7 @@ mod tests {
 
     #[bench]
     fn bench_call(b: &mut Bencher) {
-        let mut runtime = Builder::new()
-            .basic_scheduler()
-            .build().unwrap();
+        let mut runtime = Builder::new().basic_scheduler().build().unwrap();
 
         let plugin = TestCommand;
         let message = Message::Irc(irc_rust::Message::builder("PRIVMSG").build());

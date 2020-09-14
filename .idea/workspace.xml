@@ -23,24 +23,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9460feef-826a-42bf-829e-06fadfbecf54" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.github/grcov.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.github/workflows/rust.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/core/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build.rs" beforeDir="false" afterPath="$PROJECT_DIR$/core/build.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core_derive/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/core_derive/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/auth.rs" beforeDir="false" afterPath="$PROJECT_DIR$/core/src/auth.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/command_access.rs" beforeDir="false" afterPath="$PROJECT_DIR$/core/src/command_access.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/core/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/plugin.rs" beforeDir="false" afterPath="$PROJECT_DIR$/core/src/plugin.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/plugins.rs" beforeDir="false" afterPath="$PROJECT_DIR$/core/src/plugins.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/profile.rs" beforeDir="false" afterPath="$PROJECT_DIR$/core/src/profile.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/twitch_api/auth.rs" beforeDir="false" afterPath="$PROJECT_DIR$/core/src/twitch_api/auth.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/twitch_api/follows.rs" beforeDir="false" afterPath="$PROJECT_DIR$/core/src/twitch_api/follows.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/twitch_api/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/core/src/twitch_api/mod.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/twitch_api/twitch_oauth.html" beforeDir="false" afterPath="$PROJECT_DIR$/core/src/twitch_api/twitch_oauth.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/twitch_api/users.rs" beforeDir="false" afterPath="$PROJECT_DIR$/core/src/twitch_api/users.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/utils/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/core/src/utils/mod.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -78,7 +61,7 @@
       <recent name="$PROJECT_DIR$/.github" />
     </key>
   </component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Cargo Command.check">
     <configuration default="true" type="ArquillianJUnit" factoryName="" nameIsGenerated="true">
       <option name="arquillianRunConfiguration">
         <value>
@@ -102,6 +85,48 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
+    <configuration name="check" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="channel" value="DEFAULT" />
+      <option name="command" value="check" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <envs />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="clippy" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="channel" value="DEFAULT" />
+      <option name="command" value="clippy" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <envs />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="test" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+      <option name="channel" value="DEFAULT" />
+      <option name="command" value="test" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <envs />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <list>
+      <item itemvalue="Cargo Command.build" />
+      <item itemvalue="Cargo Command.test" />
+      <item itemvalue="Cargo Command.clippy" />
+      <item itemvalue="Cargo Command.check" />
+    </list>
   </component>
   <component name="RustProjectSettings">
     <option name="toolchainHomeDirectory" value="$USER_HOME$/.cargo/bin" />
@@ -114,8 +139,16 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1600071999704</updated>
-      <workItem from="1600072000750" duration="820000" />
+      <workItem from="1600072000750" duration="971000" />
     </task>
+    <task id="LOCAL-00001" summary="custom workspace for core library">
+      <created>1600072874072</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1600072874072</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -132,15 +165,35 @@
       </map>
     </option>
   </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="custom workspace for core library" />
+    <option name="LAST_COMMIT_MESSAGE" value="custom workspace for core library" />
+  </component>
   <component name="WindowStateProjectService">
-    <state x="4250" y="663" width="1099" height="870" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1600072823639">
+    <state x="4250" y="663" width="1099" height="972" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1600072974316">
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
-    <state x="4250" y="663" width="1099" height="870" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600072823639" />
+    <state x="4250" y="663" width="1099" height="972" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600072974316" />
     <state x="4476" y="742" width="636" height="719" key="FileChooserDialogImpl" timestamp="1600072822230">
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
     <state x="4476" y="742" width="636" height="719" key="FileChooserDialogImpl/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600072822230" />
+    <state width="1850" height="611" key="GridCell.Tab.0.bottom" timestamp="1600072931915">
+      <screen x="3840" y="0" width="3840" height="2160" />
+    </state>
+    <state width="1850" height="611" key="GridCell.Tab.0.bottom/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600072931915" />
+    <state width="1850" height="611" key="GridCell.Tab.0.center" timestamp="1600072931915">
+      <screen x="3840" y="0" width="3840" height="2160" />
+    </state>
+    <state width="1850" height="611" key="GridCell.Tab.0.center/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600072931915" />
+    <state width="1850" height="611" key="GridCell.Tab.0.left" timestamp="1600072931914">
+      <screen x="3840" y="0" width="3840" height="2160" />
+    </state>
+    <state width="1850" height="611" key="GridCell.Tab.0.left/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600072931914" />
+    <state width="1850" height="611" key="GridCell.Tab.0.right" timestamp="1600072931915">
+      <screen x="3840" y="0" width="3840" height="2160" />
+    </state>
+    <state width="1850" height="611" key="GridCell.Tab.0.right/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600072931915" />
     <state x="4293" y="492" width="1009" height="1470" key="search.everywhere.popup" timestamp="1600072789292">
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
