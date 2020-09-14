@@ -6,7 +6,7 @@ pub enum Platform {
     Twitch,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum InvalidIrcMessageError<'a> {
     MissingTags(&'a irc_rust::Message),
     MissingUserId(&'a irc_rust::Message),
@@ -172,7 +172,7 @@ mod tests {
     use crate::auth::Credentials;
 
     #[test]
-    fn test_str() {
+    fn test_credentials_from_str() {
         assert_eq!(
             Credentials::OAuthToken {
                 token: "thisisatoken".to_string()
@@ -186,5 +186,19 @@ mod tests {
                 token: "thisisatoken".to_string()
             }
         );
+    }
+
+    mod userinfo {
+        use crate::auth::{UserInfo, InvalidIrcMessageError};
+        use std::convert::TryFrom;
+
+        #[test]
+        fn test_irc_no_tags() {
+            let no_tags_message = irc_rust::Message::builder("PRIVMSG").build();
+            let result = UserInfo::try_from(&no_tags_message);
+            assert!(result.is_err());
+            let err = result.err().unwrap();
+            assert_eq!(err, InvalidIrcMessageError::MissingTags(&no_tags_message));
+        }
     }
 }
