@@ -24,7 +24,8 @@
   <component name="ChangeListManager">
     <list default="true" id="9460feef-826a-42bf-829e-06fadfbecf54" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/core/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/src/plugin.rs" beforeDir="false" afterPath="$PROJECT_DIR$/core/src/plugin.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/src/plugins.rs" beforeDir="false" afterPath="$PROJECT_DIR$/core/src/plugins.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -68,7 +69,7 @@
       <recent name="$PROJECT_DIR$/.github" />
     </key>
   </component>
-  <component name="RunManager" selected="Cargo Command.fmt">
+  <component name="RunManager" selected="Cargo Command.Bench plugins::tests::bench_plugins_call">
     <configuration default="true" type="ArquillianJUnit" factoryName="" nameIsGenerated="true">
       <option name="arquillianRunConfiguration">
         <value>
@@ -78,6 +79,54 @@
       <option name="TEST_OBJECT" value="class" />
       <method v="2">
         <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Bench plugins::tests" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="channel" value="DEFAULT" />
+      <option name="command" value="bench --package bot-rs-core --lib plugins::tests" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <envs />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Bench plugins::tests::bench_plugins_call" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="channel" value="DEFAULT" />
+      <option name="command" value="bench --package bot-rs-core --lib plugins::tests::bench_plugins_call --all-features -- --exact" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <envs />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Bench plugins::tests::bench_plugins_delegation_call" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="channel" value="DEFAULT" />
+      <option name="command" value="bench --package bot-rs-core --lib plugins::tests::bench_plugins_delegation_call -- --exact" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <envs />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Test plugins::tests" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="channel" value="DEFAULT" />
+      <option name="command" value="test --package bot-rs-core --lib plugins::tests" />
+      <option name="allFeatures" value="false" />
+      <option name="emulateTerminal" value="false" />
+      <option name="backtrace" value="SHORT" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <envs />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
     <configuration name="build" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
@@ -130,7 +179,7 @@
     </configuration>
     <configuration name="test" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="channel" value="DEFAULT" />
-      <option name="command" value="test" />
+      <option name="command" value="test --all --all-features" />
       <option name="allFeatures" value="false" />
       <option name="emulateTerminal" value="false" />
       <option name="backtrace" value="SHORT" />
@@ -146,7 +195,19 @@
       <item itemvalue="Cargo Command.clippy" />
       <item itemvalue="Cargo Command.check" />
       <item itemvalue="Cargo Command.fmt" />
+      <item itemvalue="Cargo Command.Bench plugins::tests::bench_plugins_delegation_call" />
+      <item itemvalue="Cargo Command.Bench plugins::tests" />
+      <item itemvalue="Cargo Command.Test plugins::tests" />
+      <item itemvalue="Cargo Command.Bench plugins::tests::bench_plugins_call" />
     </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Cargo Command.Bench plugins::tests::bench_plugins_call" />
+        <item itemvalue="Cargo Command.Test plugins::tests" />
+        <item itemvalue="Cargo Command.Bench plugins::tests::bench_plugins_delegation_call" />
+        <item itemvalue="Cargo Command.Bench plugins::tests" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="RustProjectSettings">
     <option name="toolchainHomeDirectory" value="$USER_HOME$/.cargo/bin" />
@@ -159,7 +220,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1600071999704</updated>
-      <workItem from="1600072000750" duration="2038000" />
+      <workItem from="1600072000750" duration="4270000" />
     </task>
     <task id="LOCAL-00001" summary="custom workspace for core library">
       <created>1600072874072</created>
@@ -189,7 +250,14 @@
       <option name="project" value="LOCAL" />
       <updated>1600073842581</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="added missing readme to core">
+      <created>1600074047273</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1600074047273</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -211,40 +279,45 @@
     <MESSAGE value="reformatted" />
     <MESSAGE value="fixed copy paste errors in workflow" />
     <MESSAGE value="added badges" />
-    <option name="LAST_COMMIT_MESSAGE" value="added badges" />
+    <MESSAGE value="added missing readme to core" />
+    <option name="LAST_COMMIT_MESSAGE" value="added missing readme to core" />
   </component>
   <component name="WindowStateProjectService">
-    <state x="5571" y="565" width="1099" height="1006" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1600074010043">
+    <state x="5571" y="565" width="1099" height="1006" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1600076058211">
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
-    <state x="5571" y="565" width="1099" height="1006" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600074010043" />
+    <state x="5571" y="565" width="1099" height="1006" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600076058211" />
+    <state x="4514" y="665" width="561" height="837" key="#com.intellij.ide.util.MemberChooser" timestamp="1600075140704">
+      <screen x="3840" y="0" width="3840" height="2160" />
+    </state>
+    <state x="4514" y="665" width="561" height="837" key="#com.intellij.ide.util.MemberChooser/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600075140704" />
     <state x="4476" y="742" width="636" height="719" key="FileChooserDialogImpl" timestamp="1600072822230">
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
     <state x="4476" y="742" width="636" height="719" key="FileChooserDialogImpl/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600072822230" />
-    <state width="1850" height="611" key="GridCell.Tab.0.bottom" timestamp="1600074012038">
+    <state width="3008" height="611" key="GridCell.Tab.0.bottom" timestamp="1600076265397">
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
-    <state width="1850" height="611" key="GridCell.Tab.0.bottom/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600074012038" />
-    <state width="1850" height="611" key="GridCell.Tab.0.center" timestamp="1600074012038">
+    <state width="3008" height="611" key="GridCell.Tab.0.bottom/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600076265397" />
+    <state width="3008" height="611" key="GridCell.Tab.0.center" timestamp="1600076265397">
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
-    <state width="1850" height="611" key="GridCell.Tab.0.center/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600074012038" />
-    <state width="1850" height="611" key="GridCell.Tab.0.left" timestamp="1600074012038">
+    <state width="3008" height="611" key="GridCell.Tab.0.center/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600076265397" />
+    <state width="3008" height="611" key="GridCell.Tab.0.left" timestamp="1600076265397">
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
-    <state width="1850" height="611" key="GridCell.Tab.0.left/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600074012038" />
-    <state width="1850" height="611" key="GridCell.Tab.0.right" timestamp="1600074012038">
+    <state width="3008" height="611" key="GridCell.Tab.0.left/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600076265397" />
+    <state width="3008" height="611" key="GridCell.Tab.0.right" timestamp="1600076265397">
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
-    <state width="1850" height="611" key="GridCell.Tab.0.right/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600074012038" />
-    <state x="4195" y="691" width="1200" height="785" key="Vcs.Push.Dialog.v2" timestamp="1600073203707">
+    <state width="3008" height="611" key="GridCell.Tab.0.right/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600076265397" />
+    <state x="4195" y="691" width="1200" height="785" key="Vcs.Push.Dialog.v2" timestamp="1600074070672">
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
-    <state x="4195" y="691" width="1200" height="785" key="Vcs.Push.Dialog.v2/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600073203707" />
-    <state x="4293" y="492" width="1009" height="1470" key="search.everywhere.popup" timestamp="1600073186753">
+    <state x="4195" y="691" width="1200" height="785" key="Vcs.Push.Dialog.v2/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600074070672" />
+    <state x="4293" y="492" width="1009" height="1470" key="search.everywhere.popup" timestamp="1600075895003">
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
-    <state x="4293" y="492" width="1009" height="1470" key="search.everywhere.popup/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600073186753" />
+    <state x="4293" y="492" width="1009" height="1470" key="search.everywhere.popup/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600075895003" />
   </component>
 </project>

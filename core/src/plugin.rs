@@ -117,7 +117,16 @@ macro_rules! export_command {
 #[derive(Debug, Clone)]
 pub(crate) struct PluginProxy {
     command: Arc<dyn StreamablePlugin>,
-    _lib: Arc<Library>,
+    _lib: Arc<Option<Library>>,
+}
+
+impl<P: StreamablePlugin + 'static> From<Arc<P>> for PluginProxy {
+    fn from(plugin: Arc<P>) -> Self {
+        PluginProxy {
+            command: plugin,
+            _lib: Arc::new(None),
+        }
+    }
 }
 
 #[async_trait]
@@ -138,11 +147,11 @@ impl StreamablePlugin for PluginProxy {
 #[derive(Clone, Debug)]
 pub struct PluginRegistrar {
     pub(crate) commands: Vec<PluginProxy>,
-    lib: Arc<Library>,
+    lib: Arc<Option<Library>>,
 }
 
 impl PluginRegistrar {
-    pub fn new(lib: Arc<Library>) -> PluginRegistrar {
+    pub fn new(lib: Arc<Option<Library>>) -> PluginRegistrar {
         PluginRegistrar {
             lib,
             commands: Vec::new(),

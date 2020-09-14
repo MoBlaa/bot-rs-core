@@ -17,7 +17,7 @@ use std::{fs, io};
 #[derive(Default, Debug)]
 pub struct Plugins {
     commands: Vec<PluginProxy>,
-    libraries: Vec<Arc<Library>>,
+    libraries: Vec<Arc<Option<Library>>>,
 }
 
 impl Plugins {
@@ -72,7 +72,7 @@ impl Plugins {
     /// This function should only be called with a valid path to a library file.
     unsafe fn load<P: AsRef<OsStr>>(&mut self, library_path: P) -> io::Result<()> {
         // load the library into memory
-        let library = Arc::new(Library::new(library_path).expect("failed to create new library"));
+        let library = Library::new(library_path).expect("failed to create new library");
 
         // get a pointer to the plugin_declaration symbol.
         let decl = match library.get::<*mut CommandDeclaration>(b"command_declaration\0") {
@@ -103,6 +103,8 @@ impl Plugins {
             ));
         }
         trace!("RUSTC and CORE versions match!");
+
+        let library = Arc::new(Some(library));
 
         let mut registrar = Box::new(PluginRegistrar::new(Arc::clone(&library)));
 
@@ -154,5 +156,66 @@ impl StreamablePlugin for Plugins {
             repo: option_env!("CARGO_PKG_REPOSITORY").map(|repo| repo.to_string()),
             commands: vec![],
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::plugin::{InvocationError, Plugin, PluginInfo, PluginProxy, StreamablePlugin};
+    use crate::plugins::Plugins;
+    use crate::Message;
+    use async_trait::async_trait;
+    use bot_rs_core_derive::*;
+    use futures::{SinkExt, StreamExt};
+    use std::sync::Arc;
+    use test::Bencher;
+    use tokio::runtime::Builder;
+
+    #[derive(Debug, StreamablePlugin)]
+    struct TestCommand;
+
+    #[async_trait]
+    impl Plugin for TestCommand {
+        async fn call(&self, _message: Message) -> Result<Vec<Message>, InvocationError> {
+            Ok(Vec::new())
+        }
+
+        fn info(&self) -> PluginInfo {
+            PluginInfo {
+                name: "".to_string(),
+                version: "".to_string(),
+                authors: "".to_string(),
+                repo: None,
+                commands: vec![],
+            }
+        }
+    }
+
+    #[bench]
+    fn bench_plugins_call(b: &mut Bencher) {
+        let mut runtime = Builder::new()
+            .basic_scheduler()
+            .build()
+            .expect("failed to build test runtime");
+        let plugins = Plugins {
+            commands: vec![PluginProxy::from(Arc::new(TestCommand))],
+            libraries: vec![],
+        };
+        let (mut input_sender, input_receiver) = futures::channel::mpsc::unbounded::<Message>();
+        let (output_sender, mut output_receiver) =
+            futures::channel::mpsc::unbounded::<Vec<Message>>();
+
+        runtime.spawn(async move {
+            plugins.stream(input_receiver, output_sender).await.unwrap();
+        });
+
+        let message = Message::Irc(irc_rust::Message::from("PRIVMSG :hello"));
+
+        b.iter(|| {
+            runtime.block_on(input_sender.send(message.clone())).unwrap();
+            let result = runtime.block_on(output_receiver.next());
+            assert!(result.is_some());
+            assert!(result.unwrap().is_empty());
+        });
     }
 }
