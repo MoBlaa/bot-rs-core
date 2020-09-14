@@ -196,9 +196,14 @@ mod tests {
         fn test_irc_no_tags() {
             let no_tags_message = irc_rust::Message::builder("PRIVMSG").build();
             let result = UserInfo::try_from(&no_tags_message);
-            assert!(result.is_err());
-            let err = result.err().unwrap();
-            assert_eq!(err, InvalidIrcMessageError::MissingTags(&no_tags_message));
+            assert_eq!(result, Err(InvalidIrcMessageError::MissingTags(&no_tags_message)));
+        }
+
+        #[test]
+        fn test_irc_id() {
+            let no_user_id = irc_rust::Message::builder("PRIVMSG").tag("id", "messageid1").build();
+            let result = UserInfo::try_from(&no_user_id);
+            assert_eq!(result, Err(InvalidIrcMessageError::MissingUserId(&no_user_id)));
         }
     }
 }
