@@ -192,9 +192,37 @@ mod tests {
     }
 
     #[bench]
-    fn bench_plugins_call(b: &mut Bencher) {
+    fn bench_plugins_basic_scheduler(b: &mut Bencher) {
         let mut runtime = Builder::new()
             .basic_scheduler()
+            .build()
+            .expect("failed to build test runtime");
+        let plugins = Plugins {
+            commands: vec![PluginProxy::from(Arc::new(TestCommand))],
+            libraries: vec![],
+        };
+        let (mut input_sender, input_receiver) = futures::channel::mpsc::unbounded::<Message>();
+        let (output_sender, mut output_receiver) =
+            futures::channel::mpsc::unbounded::<Vec<Message>>();
+
+        runtime.spawn(async move {
+            plugins.stream(input_receiver, output_sender).await.unwrap();
+        });
+
+        let message = Message::Irc(irc_rust::Message::from("PRIVMSG :hello"));
+
+        b.iter(|| {
+            runtime.block_on(input_sender.send(message.clone())).unwrap();
+            let result = runtime.block_on(output_receiver.next());
+            assert!(result.is_some());
+            assert!(result.unwrap().is_empty());
+        });
+    }
+
+    #[bench]
+    fn bench_plugins_threaded_scheduler(b: &mut Bencher) {
+        let mut runtime = Builder::new()
+            .threaded_scheduler()
             .build()
             .expect("failed to build test runtime");
         let plugins = Plugins {
