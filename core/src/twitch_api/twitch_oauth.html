@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OAuth Twitch Bot-RS</title>
+    <script type="application/javascript">
+        function handle_oauth() {
+            let hash = window.location.hash.substr(1);
+            console.log(`Fragment: ${hash}`);
+
+            let xhttp = new XMLHttpRequest();
+            xhttp.open("POST", `/auth?${hash}`, true);
+            xhttp.send();
+
+            document.getElementById('success').removeAttribute("hidden");
+
+            setTimeout(() => window.close(), 2000);
+        }
+    </script>
+</head>
+<body onload="handle_oauth()">
+    <div id="success" hidden>
+        <h1>Successfully retrieved access Token!</h1>
+        If this window doesn't close after 2 seconds you can manually close it.
+    </div>
+</body>
+</html>
