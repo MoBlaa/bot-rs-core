@@ -58,7 +58,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --package summon-plugin
+          args: --all
   fmt:
     runs-on: ubuntu-latest
     strategy:
@@ -86,7 +86,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --package summon-plugin -- --check
+          args: --all -- --check
   clippy:
     runs-on: ubuntu-latest
     strategy:
@@ -114,7 +114,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --package summon-plugin -- -D warnings
+          args: --all -- -D warnings
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -133,7 +133,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --package summon-plugin --all-features
+          args: --all --all-features
         env:
           CARGO_INCREMENTAL: 0
           # '-Cpanic=abort -Zpanic_abort_tests' fails if benchmarks are part of tests
