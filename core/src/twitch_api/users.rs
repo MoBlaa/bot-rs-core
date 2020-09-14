@@ -10,7 +10,7 @@ pub struct GetUsersReq {
 }
 
 impl GetUsersReq {
-    pub fn new(usernames: Vec<String>) -> GetUsersReq {
+    fn new(usernames: Vec<String>) -> GetUsersReq {
         GetUsersReq {
             usernames,
             base: "api.twitch.tv".to_string(),
@@ -26,6 +26,14 @@ impl GetUsersReq {
     pub fn tls(&mut self, tls: bool) -> &mut Self {
         self.protocol = if tls { "https" } else { "http" };
         self
+    }
+}
+
+impl<I> From<I> for GetUsersReq where I: IntoIterator, I::Item: ToString {
+    fn from(iter: I) -> Self {
+        GetUsersReq::new(iter.into_iter()
+            .map(|item| item.to_string())
+            .collect::<Vec<_>>())
     }
 }
 
@@ -60,4 +68,34 @@ pub struct UserRes {
     #[serde(rename = "type")]
     pub typ: String,
     pub updated_at: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::twitch_api::users::GetUsersReq;
+
+    #[test]
+    fn test_from_iter() {
+        let items = vec![String::from("name1"), String::from("name2"), String::from("name3")];
+
+        let req = GetUsersReq::from(items.clone());
+        assert_eq!(req.usernames, items);
+
+        let req = GetUsersReq::from(items.iter());
+        assert_eq!(req.usernames, items);
+    }
+
+    #[test]
+    fn test_build_getuserreq() {
+        let req = GetUsersReq::new(vec!["name1".to_string(), "name2".to_string()]);
+        assert_eq!(req.to_string(), "https://api.twitch.tv/kraken/users?login=name1,name2".to_string());
+
+        let mut req = GetUsersReq::new(vec!["name1".to_string(), "name2".to_string()]);
+        req.base("localhost:8080");
+        assert_eq!(req.to_string(), "https://localhost:8080/kraken/users?login=name1,name2".to_string());
+
+        let mut req = GetUsersReq::new(vec!["name1".to_string(), "name2".to_string()]);
+        req.base("localhost:8080").tls(false);
+        assert_eq!(req.to_string(), "http://localhost:8080/kraken/users?login=name1,name2".to_string());
+    }
 }
