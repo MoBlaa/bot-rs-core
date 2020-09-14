@@ -23,8 +23,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9460feef-826a-42bf-829e-06fadfbecf54" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.github/workflows/rust.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/rust.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -140,7 +139,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1600071999704</updated>
-      <workItem from="1600072000750" duration="1137000" />
+      <workItem from="1600072000750" duration="1738000" />
     </task>
     <task id="LOCAL-00001" summary="custom workspace for core library">
       <created>1600072874072</created>
@@ -156,7 +155,14 @@
       <option name="project" value="LOCAL" />
       <updated>1600073004206</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="fixed copy paste errors in workflow">
+      <created>1600073202369</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1600073202369</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -176,7 +182,8 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="custom workspace for core library" />
     <MESSAGE value="reformatted" />
-    <option name="LAST_COMMIT_MESSAGE" value="reformatted" />
+    <MESSAGE value="fixed copy paste errors in workflow" />
+    <option name="LAST_COMMIT_MESSAGE" value="fixed copy paste errors in workflow" />
   </component>
   <component name="WindowStateProjectService">
     <state x="4250" y="663" width="1099" height="972" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1600072974316">
@@ -203,13 +210,13 @@
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
     <state width="1850" height="611" key="GridCell.Tab.0.right/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600073091371" />
-    <state x="4195" y="691" width="1200" height="785" key="Vcs.Push.Dialog.v2" timestamp="1600073016133">
+    <state x="4195" y="691" width="1200" height="785" key="Vcs.Push.Dialog.v2" timestamp="1600073203707">
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
-    <state x="4195" y="691" width="1200" height="785" key="Vcs.Push.Dialog.v2/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600073016133" />
-    <state x="4293" y="492" width="1009" height="1470" key="search.everywhere.popup" timestamp="1600073013338">
+    <state x="4195" y="691" width="1200" height="785" key="Vcs.Push.Dialog.v2/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600073203707" />
+    <state x="4293" y="492" width="1009" height="1470" key="search.everywhere.popup" timestamp="1600073186753">
       <screen x="3840" y="0" width="3840" height="2160" />
     </state>
-    <state x="4293" y="492" width="1009" height="1470" key="search.everywhere.popup/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600073013338" />
+    <state x="4293" y="492" width="1009" height="1470" key="search.everywhere.popup/0.41.3840.2119/3840.0.3840.2160@3840.0.3840.2160" timestamp="1600073186753" />
   </component>
 </project>
