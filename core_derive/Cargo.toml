@@ -10,9 +10,9 @@ edition = "2018"
 proc-macro = true
 
 [dependencies]
-syn = "1.0.31"
+syn = "1.0.42"
 quote = "1.0.7"
 
 [dev-dependencies]
-async-trait = "0.1.40"
+async-trait = "0.1.41"
 bot-rs-core = { path = "../core" }
