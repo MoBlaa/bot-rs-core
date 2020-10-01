@@ -18,8 +18,8 @@ impl GetUsersReq {
         }
     }
 
-    pub fn base<S: ToString>(&mut self, base: S) -> &mut Self {
-        self.base = base.to_string();
+    pub fn base(&mut self, base: String) -> &mut Self {
+        self.base = base;
         self
     }
 
