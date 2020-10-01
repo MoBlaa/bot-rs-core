@@ -104,14 +104,14 @@ mod tests {
         );
 
         let mut req = GetUsersReq::new(vec!["name1".to_string(), "name2".to_string()]);
-        req.base("localhost:8080");
+        req.base("localhost:8080".to_string());
         assert_eq!(
             req.to_string(),
             "https://localhost:8080/kraken/users?login=name1,name2".to_string()
         );
 
         let mut req = GetUsersReq::new(vec!["name1".to_string(), "name2".to_string()]);
-        req.base("localhost:8080").tls(false);
+        req.base("localhost:8080".to_string()).tls(false);
         assert_eq!(
             req.to_string(),
             "http://localhost:8080/kraken/users?login=name1,name2".to_string()
