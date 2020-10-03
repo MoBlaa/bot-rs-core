@@ -29,6 +29,11 @@ impl fmt::Display for InvalidIrcMessageError<'_> {
     }
 }
 
+/// Generic enum for storing userinfo. Contains platform local information and
+/// creates an API to access these data in a unified and platform independent way.
+///
+/// Can be created directly but should be derived with its [From] and [TryFrom] implementations.
+/// Implements [From] for some api data structs if `features = ["twitch-api"]` is enabled.
 #[derive(Clone, Eq, PartialEq, Debug, Serialize, Deserialize, Hash)]
 pub enum UserInfo {
     Twitch { name: String, id: String },
@@ -98,12 +103,12 @@ impl<'a> TryFrom<&'a irc_rust::Message> for UserInfo {
         let tags = irc_message
             .tags()
             .expect("invalid irc message")
-            .ok_or_else(|| InvalidIrcMessageError::MissingTags(irc_message))?;
+            .ok_or(InvalidIrcMessageError::MissingTags(irc_message))?;
 
         let user_id = tags
             .get("user-id")
             .map(|id| id.to_string())
-            .ok_or_else(|| InvalidIrcMessageError::MissingUserId(irc_message))?;
+            .ok_or(InvalidIrcMessageError::MissingUserId(irc_message))?;
 
         let username = tags
             .get("display-name")
@@ -113,7 +118,7 @@ impl<'a> TryFrom<&'a irc_rust::Message> for UserInfo {
                 .prefix()
                 .expect("invalid irc message")
                 .map(|prefix| prefix.name().to_string())
-                .ok_or_else(|| InvalidIrcMessageError::MissingPrefix(irc_message))?,
+                .ok_or(InvalidIrcMessageError::MissingPrefix(irc_message))?,
             Some(username) => username,
         };
 
@@ -124,7 +129,8 @@ impl<'a> TryFrom<&'a irc_rust::Message> for UserInfo {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+/// Platform independent Credentials enum.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, Hash, Ord, PartialOrd)]
 pub enum Credentials {
     OAuthToken { token: String },
     None,
@@ -145,9 +151,9 @@ where
 {
     fn from(t: S) -> Self {
         let s_t = t.as_ref();
-        if s_t.starts_with("oauth:") {
+        if let Some(token) = s_t.strip_prefix("oauth:") {
             Credentials::OAuthToken {
-                token: s_t[6..].to_string(),
+                token: token.to_string(),
             }
         } else {
             panic!("token has no supported format: {}", s_t)
