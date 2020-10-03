@@ -2,7 +2,11 @@ use core::fmt;
 use serde::export::Formatter;
 use std::fmt::Display;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+/// Builder struct for the `Get Users` endpoint of twitch ([API docs](https://dev.twitch.tv/docs/v5/reference/users#get-users)).
+///
+/// To create a new request you can either use [GetUserReq::from] with a Iterator over string-like
+/// elements or [GetUserReq::new] if you have a vector of Strings.
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct GetUsersReq {
     usernames: Vec<String>,
     base: String,
@@ -10,7 +14,8 @@ pub struct GetUsersReq {
 }
 
 impl GetUsersReq {
-    fn new(usernames: Vec<String>) -> GetUsersReq {
+    /// Create a new request with default values `base = "api.twitch.tv", tls: true`.
+    pub fn new(usernames: Vec<String>) -> GetUsersReq {
         GetUsersReq {
             usernames,
             base: "api.twitch.tv".to_string(),
@@ -18,11 +23,14 @@ impl GetUsersReq {
         }
     }
 
+    /// Set the base url for the request. Defaults to `"api.twitch.tv"`.
     pub fn base(&mut self, base: String) -> &mut Self {
         self.base = base;
         self
     }
 
+    /// Sets the protocol to use. Defaults to `true` alias `https`.
+    /// If `tls` is `true` `https` will be used, `http` otherwise.
     pub fn tls(&mut self, tls: bool) -> &mut Self {
         self.protocol = if tls { "https" } else { "http" };
         self
@@ -55,14 +63,17 @@ impl Display for GetUsersReq {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+/// Data struct containing data returned from twitch by utilizing [GetUserReq] and represents a
+/// list of users.
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Hash)]
 pub struct GetUsersRes {
     #[serde(rename = "_total")]
     pub total: usize,
     pub users: Vec<UserRes>,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+/// Data struct containing data returned from twitch and representing a single twitch user object.
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize, Hash)]
 pub struct UserRes {
     #[serde(rename = "_id")]
     pub id: String,
