@@ -26,9 +26,7 @@ use std::fmt::Display;
 /// #[async_trait]
 /// impl Plugin for TestPlugin{
 ///     async fn call(&self, message: Message) -> Result<Vec<Message>, InvocationError> {
-///         let rights = self.0.rights();
-///         let allowed = rights.allowed(&message);
-///         match allowed {
+///         match self.0.rights().allowed(&message) {
 ///             Some(true) => (),// Message was checked by a AccessFilter and is allowed,
 ///             Some(false) => (),// Message was checked by a AccessFilter and is not allowed
 ///             None => (), // Message has no handling AccessFilters

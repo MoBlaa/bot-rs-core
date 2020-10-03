@@ -58,14 +58,22 @@
 //!     use bot_rs_core::Message;
 //!     use bot_rs_core::plugin::{StreamablePlugin, Plugin, InvocationError, PluginInfo, PluginRegistrar};
 //!     use std::sync::Arc;
+//!     use bot_rs_core::profile::Profile;
 //!
 //!     // Reacts to an invocation of `!hello` with `Hello, @<sender name>!`.
 //!     #[derive(StreamablePlugin)]
-//!     struct HelloPlugin;
+//!     struct HelloPlugin {
+//!         profile: Profile
+//!     }
 //!
-//!     #[async_trait]
+//!     #[async_trait::async_trait]
 //!     impl Plugin for HelloPlugin {
 //!         async fn call(&self, msg: Message) -> Result<Vec<Message>, InvocationError> {
+//!             // Check AccessRights before processing
+//!             if let Some(false) = self.profile.rights().allowed(&msg) {
+//!                 // Only process messages not handled by filters or allowed
+//!                 return Ok(Vec::with_capacity(0));
+//!             }
 //!             match &msg {
 //!                 Message::Irc(irc_message) => {
 //!                     match irc_message.get_command() {
@@ -118,12 +126,14 @@
 //!     }
 //!
 //!     // This macro creates a static field which can be loaded by the plugin loader.
-//!     export_command!(register);
+//!     bot_rs_core::export_command!(register);
 //!
 //!     // The plugin loading mechanism uses this function for load and register. Initializing loggers and other dependencies has to be done here.
 //!     extern "C" fn register(registrar: &mut PluginRegistrar) {
 //!         env_logger::init();
-//!         registrar.register(Arc::new(HelloPlugin))
+//!         // Is set on startup by Bot-RS CLI Tool
+//!         let profile = Profile::active().unwrap();
+//!         registrar.register(Arc::new(HelloPlugin{ profile }))
 //!     }
 //!     ```
 //! 5. (Optional) Optimize plugin file for size to reduce the file size produced through `cargo build`. To do this copy the following snippet to your `Cargo.toml`:
