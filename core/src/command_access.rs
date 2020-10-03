@@ -5,7 +5,42 @@ use core::fmt;
 use serde::export::Formatter;
 use std::fmt::Display;
 
-/// Manages filters for command invocations.
+// TODO: Include in derive implementation of StreameblePlugin
+
+/// Manages filters for command invocations. Should be used to manage the access of users
+/// to commands based on the messages.
+///
+/// # Example
+///
+/// Its recommended to use this before processing the command.
+///
+/// ```rust,no_run
+/// use bot_rs_core::plugin::{Plugin, PluginInfo, InvocationError};
+/// use bot_rs_core::Message;
+/// use async_trait::async_trait;
+/// use bot_rs_core::profile::{Profiles, Profile};
+///
+/// // Profile can be stored on Plugin creation as active profile doesn't change at runtime
+/// struct TestPlugin(Profile);
+///
+/// #[async_trait]
+/// impl Plugin for TestPlugin{
+///     async fn call(&self, message: Message) -> Result<Vec<Message>, InvocationError> {
+///         let rights = self.0.rights();
+///         let allowed = rights.allowed(&message);
+///         match allowed {
+///             Some(true) => (),// Message was checked by a AccessFilter and is allowed,
+///             Some(false) => (),// Message was checked by a AccessFilter and is not allowed
+///             None => (), // Message has no handling AccessFilters
+///         }
+///         Ok(Vec::with_capacity(0))
+///     }
+///
+///     fn info(&self) -> PluginInfo {
+///         unimplemented!()
+///     }
+/// }
+/// ```
 #[derive(Debug, Default, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct AccessRights {
     // Maps the name of an access filter to the filter.
@@ -15,12 +50,10 @@ pub struct AccessRights {
 impl AccessRights {
     pub fn new() -> Self {
         AccessRights {
-            filters: vec![
-                AccessFilter::All(vec![
-                    AccessFilter::broadcaster(),
-                    AccessFilter::default_command_start()
-                ])
-            ],
+            filters: vec![AccessFilter::All(vec![
+                AccessFilter::broadcaster(),
+                AccessFilter::default_command_start(),
+            ])],
         }
     }
 
@@ -30,7 +63,7 @@ impl AccessRights {
     }
 
     /// Returns an Iterator over all
-    pub fn iter(&self) -> impl Iterator<Item=&AccessFilter> {
+    pub fn iter(&self) -> impl Iterator<Item = &AccessFilter> {
         self.filters.iter()
     }
 
@@ -42,7 +75,9 @@ impl AccessRights {
     /// - `Some(false)` if filters were present for the message and none allowed it and
     /// - `None` if no filters were present for the message.
     pub fn allowed(&self, mssg: &Message) -> Option<bool> {
-        let handling = self.filters.iter()
+        let handling = self
+            .filters
+            .iter()
             .filter(|filter| filter.handles(mssg))
             .collect::<Vec<_>>();
         if handling.is_empty() {
@@ -86,14 +121,11 @@ impl AccessFilter {
                 .unwrap_or(None)
                 .map(|tags| tags.get("badges").is_some())
                 .unwrap_or(false),
-            (AccessFilter::Trailing(_), Message::Irc(mssg)) => mssg
-                .params()
-                .and_then(|params| params.trailing())
-                .is_some(),
-            (AccessFilter::All(filters), mssg) =>
-                filters.iter().all(|filter| filter.handles(mssg)),
-            (AccessFilter::Any(filters), mssg) =>
-                filters.iter().any(|filter| filter.handles(mssg))
+            (AccessFilter::Trailing(_), Message::Irc(mssg)) => {
+                mssg.params().and_then(|params| params.trailing()).is_some()
+            }
+            (AccessFilter::All(filters), mssg) => filters.iter().all(|filter| filter.handles(mssg)),
+            (AccessFilter::Any(filters), mssg) => filters.iter().any(|filter| filter.handles(mssg)),
         }
     }
 
@@ -102,7 +134,10 @@ impl AccessFilter {
             (AccessFilter::Badge(regex), Message::Irc(mssg)) => {
                 let tags = mssg.tags();
                 if tags.is_err() {
-                    error!("failed to parse tags from irc message: {:?}", tags.unwrap_err());
+                    error!(
+                        "failed to parse tags from irc message: {:?}",
+                        tags.unwrap_err()
+                    );
                     return false;
                 }
 
@@ -116,17 +151,17 @@ impl AccessFilter {
                     })
                     .unwrap_or(false)
             }
-            (AccessFilter::Trailing(regex), Message::Irc(mssg)) =>
-                mssg.params()
-                    .and_then(|params| params.trailing())
-                    .map(|trailing| Regex::new(regex)
+            (AccessFilter::Trailing(regex), Message::Irc(mssg)) => mssg
+                .params()
+                .and_then(|params| params.trailing())
+                .map(|trailing| {
+                    Regex::new(regex)
                         .expect("invalid trailing regex")
-                        .is_match(trailing))
-                    .unwrap_or(false),
-            (AccessFilter::All(filters), mssg) =>
-                filters.iter().all(|filter| filter.matches(mssg)),
-            (AccessFilter::Any(filters), mssg) =>
-                filters.iter().any(|filter| filter.matches(mssg))
+                        .is_match(trailing)
+                })
+                .unwrap_or(false),
+            (AccessFilter::All(filters), mssg) => filters.iter().all(|filter| filter.matches(mssg)),
+            (AccessFilter::Any(filters), mssg) => filters.iter().any(|filter| filter.matches(mssg)),
         }
     }
 }
@@ -147,7 +182,7 @@ impl Display for AccessFilter {
                     filter.fmt(f)?;
                 }
                 write!(f, " )")
-            },
+            }
             AccessFilter::Any(filters) => {
                 write!(f, "( ")?;
                 let mut iter = filters.iter();
@@ -159,7 +194,7 @@ impl Display for AccessFilter {
                     filter.fmt(f)?;
                 }
                 write!(f, " )")
-            },
+            }
         }
     }
 }
@@ -173,15 +208,19 @@ mod tests {
     fn test_badge_filter() {
         let badge_filter = AccessFilter::Badge("moderator/*".to_string());
 
-        let message = Message::Irc(irc_rust::Message::builder("PRIVMSG")
-            .tag("badges", "moderator/1")
-            .build());
+        let message = Message::Irc(
+            irc_rust::Message::builder("PRIVMSG")
+                .tag("badges", "moderator/1")
+                .build(),
+        );
         assert!(badge_filter.handles(&message));
         assert!(badge_filter.matches(&message));
 
-        let message = Message::Irc(irc_rust::Message::builder("PRIVMSG")
-            .tag("badges", "subscriber/1")
-            .build());
+        let message = Message::Irc(
+            irc_rust::Message::builder("PRIVMSG")
+                .tag("badges", "subscriber/1")
+                .build(),
+        );
         assert!(badge_filter.handles(&message));
         assert!(!badge_filter.matches(&message));
 
