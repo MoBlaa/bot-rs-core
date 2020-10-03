@@ -367,7 +367,11 @@ mod tests {
                 assert_eq!(client_secret, "client_secret");
                 assert_eq!(scope, DEFAULT_SCOPES);
             }
-            req => assert!(false, "Expected AuthReq::ClientCredentials but got: {:?}", req),
+            req => assert!(
+                false,
+                "Expected AuthReq::ClientCredentials but got: {:?}",
+                req
+            ),
         }
     }
 }
