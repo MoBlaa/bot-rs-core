@@ -15,4 +15,4 @@ quote = "1.0.7"
 
 [dev-dependencies]
 async-trait = "0.1.41"
-bot-rs-core = { path = "../core" }
+bot-rs-core = { path = "../" }
