@@ -205,8 +205,8 @@ impl Display for Profile {
             writeln!(f, "Access Rights:\tOnly Broadcaster")?;
         } else {
             writeln!(f, "Access Rights:")?;
-            for (name, filter) in self.rights.iter() {
-                writeln!(f, "\t{}: {}", name, filter)?;
+            for filter in self.rights.iter() {
+                writeln!(f, "\t{}", filter)?;
             }
         }
         Ok(())
