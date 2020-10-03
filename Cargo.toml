@@ -36,11 +36,11 @@ reqwest = { version = "0.10.4", features = ["default", "json"], optional = true 
 rocket = { version = "0.4.5", optional = true }
 chrono = { version = "0.4.19", features = ["serde"], optional = true }
 hyper = { version = "0.13.8", optional = true }
-bot-rs-core-derive = { path = "../core_derive", optional = true }
+bot-rs-core-derive = { path = "core_derive", optional = true }
 tokio = { version = "0.2", features = ["rt-core"], optional = true}
 
 [dev-dependencies]
-bot-rs-core-derive = { path = "../core_derive" }
+bot-rs-core-derive = { path = "core_derive" }
 tokio = { version = "0.2.22", features = ["full"] }
 
 [build-dependencies]
