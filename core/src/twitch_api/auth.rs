@@ -294,7 +294,7 @@ struct TwitchValidation {
 
 #[cfg(test)]
 mod tests {
-    use crate::twitch_api::auth::{AuthRequest, ENV_TWITCH_AUTH, REDIRECT_URI, DEFAULT_SCOPES};
+    use crate::twitch_api::auth::{AuthRequest, DEFAULT_SCOPES, ENV_TWITCH_AUTH, REDIRECT_URI};
 
     #[test]
     fn test_format() {
@@ -314,13 +314,19 @@ mod tests {
         let auth = AuthRequest::new("client_id".to_string(), None);
 
         match auth {
-            AuthRequest::ImplicitCode { client_id, redirect_uri, scope, state: _, force_verify } => {
+            AuthRequest::ImplicitCode {
+                client_id,
+                redirect_uri,
+                scope,
+                state: _,
+                force_verify,
+            } => {
                 assert_eq!(client_id, "client_id");
                 assert_eq!(redirect_uri, REDIRECT_URI);
                 assert_eq!(scope, DEFAULT_SCOPES);
                 assert_eq!(force_verify, true);
             }
-            req => assert!(false, "Expected AuthReq::ImplicitCode but got: {:?}", req)
+            req => assert!(false, "Expected AuthReq::ImplicitCode but got: {:?}", req),
         }
     }
 
@@ -330,13 +336,19 @@ mod tests {
         let auth = AuthRequest::new("client_id".to_string(), None);
 
         match auth {
-            AuthRequest::AuthorizationCode { client_id, redirect_uri, scope, state: _, force_verify } => {
+            AuthRequest::AuthorizationCode {
+                client_id,
+                redirect_uri,
+                scope,
+                state: _,
+                force_verify,
+            } => {
                 assert_eq!(client_id, "client_id");
                 assert_eq!(redirect_uri, REDIRECT_URI);
                 assert_eq!(scope, DEFAULT_SCOPES);
                 assert_eq!(force_verify, true);
             }
-            req => assert!(false, "Expected AuthReq::ImplicitCode but got: {:?}", req)
+            req => assert!(false, "Expected AuthReq::ImplicitCode but got: {:?}", req),
         }
     }
 
@@ -346,12 +358,16 @@ mod tests {
         let auth = AuthRequest::new("client_id".to_string(), Some("client_secret".to_string()));
 
         match auth {
-            AuthRequest::ClientCredentials { client_id, client_secret, scope } => {
+            AuthRequest::ClientCredentials {
+                client_id,
+                client_secret,
+                scope,
+            } => {
                 assert_eq!(client_id, "client_id");
                 assert_eq!(client_secret, "client_secret");
                 assert_eq!(scope, DEFAULT_SCOPES);
             }
-            req => assert!(false, "Expected AuthReq::ImplicitCode but got: {:?}", req)
+            req => assert!(false, "Expected AuthReq::ImplicitCode but got: {:?}", req),
         }
     }
 }
