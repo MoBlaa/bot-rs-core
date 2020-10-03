@@ -309,12 +309,28 @@ mod tests {
     }
 
     #[test]
-    fn test_auth_req_new() {
+    fn test_auth_req_new_implicitcode() {
         std::env::set_var(ENV_TWITCH_AUTH, "token");
         let auth = AuthRequest::new("client_secret".to_string(), None);
 
         match auth {
             AuthRequest::ImplicitCode { client_id, redirect_uri, scope, state: _, force_verify } => {
+                assert_eq!(client_id, "client_secret");
+                assert_eq!(redirect_uri, REDIRECT_URI);
+                assert_eq!(scope, DEFAULT_SCOPES);
+                assert_eq!(force_verify, true);
+            }
+            req => assert!(false, "Expected AuthReq::ImplicitCode but got: {:?}", req)
+        }
+    }
+
+    #[test]
+    fn test_auth_req_new_authcode() {
+        std::env::set_var(ENV_TWITCH_AUTH, "code");
+        let auth = AuthRequest::new("client_secret".to_string(), None);
+
+        match auth {
+            AuthRequest::AuthorizationCode { client_id, redirect_uri, scope, state: _, force_verify } => {
                 assert_eq!(client_id, "client_secret");
                 assert_eq!(redirect_uri, REDIRECT_URI);
                 assert_eq!(scope, DEFAULT_SCOPES);
