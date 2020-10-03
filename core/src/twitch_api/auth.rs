@@ -17,6 +17,7 @@ use url::Url;
 /// "code" = OAuth Authorization Code Flow,
 /// "client_credentials" = OAuth Client Credentials Flow
 pub const ENV_TWITCH_AUTH: &str = "BRS_TWITCH_AUTH";
+/// Name of the envvar which will contain the twitch auth token.
 pub const ENV_TWITCH_TOKEN: &str = "BRS_TWITCH_TOKEN";
 /// Contains a serialized version of the userInfo of the currently used bot account.
 pub const ENV_TWITCH_USER_INFO: &str = "BRS_TWITCH_USERINFO";
@@ -74,6 +75,12 @@ fn auth_get(
     "Successfully obtained access token! You can close this window now..".to_string()
 }
 
+/// Struct implementing the [Authenticator] trait for Twitch.
+/// This handles the OAuth authentication process with `client-id` and optional `client-secret`
+/// described in [the twitch apis](https://dev.twitch.tv/docs/authentication/getting-tokens-oauth).
+///
+/// The used [AuthRequest] is built from the client information on creation and from environment
+/// variables. See [AuthRequest::new].
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct TwitchAuthenticator {
     client_id: String,
@@ -157,7 +164,7 @@ impl Authenticator for TwitchAuthenticator {
     }
 }
 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize, Ord, PartialOrd, Eq, Hash)]
 pub enum AuthRequest {
     /// [](https://dev.twitch.tv/docs/authentication/getting-tokens-oauth#oauth-implicit-code-flow) requiring GET.
     ImplicitCode {
@@ -183,17 +190,10 @@ pub enum AuthRequest {
     },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
-struct TwitchValidation {
-    client_id: String,
-    login: String,
-    user_id: String,
-    scopes: Vec<String>,
-    expires_in: i64,
-}
-
 impl AuthRequest {
-    fn new(client_id: String, client_secret: Option<String>) -> Self {
+    /// Creates a new [AuthRequest] with given client information and by fetching auth information
+    /// from the environment ([ENV_TWITCH_AUTH] defaults to `"token"`, [ENV_TWITCH_SCOPES] defaults to [DEFAULT_SCOPES]).
+    pub fn new(client_id: String, client_secret: Option<String>) -> Self {
         let auth_type = std::env::var(ENV_TWITCH_AUTH).unwrap_or_else(|arg| {
             warn!("Error fetching envvar: {}", arg);
             "token".to_string()
@@ -283,9 +283,18 @@ impl Display for AuthRequest {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+struct TwitchValidation {
+    client_id: String,
+    login: String,
+    user_id: String,
+    scopes: Vec<String>,
+    expires_in: i64,
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::twitch_api::auth::AuthRequest;
+    use crate::twitch_api::auth::{AuthRequest, ENV_TWITCH_AUTH, REDIRECT_URI, DEFAULT_SCOPES};
 
     #[test]
     fn test_format() {
@@ -297,5 +306,21 @@ mod tests {
             state: "abcdefghijklmnopqrstuvwxyz123456789".to_string(),
         };
         assert_eq!(auth.to_string(), "https://id.twitch.tv/oauth2/authorize?client_id=someclientid&redirect_uri=https://localhost:4334/&response_type=token&scope=scope1%20scope2&force_verify=true&state=abcdefghijklmnopqrstuvwxyz123456789")
+    }
+
+    #[test]
+    fn test_auth_req_new() {
+        std::env::set_var(ENV_TWITCH_AUTH, "token");
+        let auth = AuthRequest::new("client_secret".to_string(), None);
+
+        match auth {
+            AuthRequest::ImplicitCode { client_id, redirect_uri, scope, state: _, force_verify } => {
+                assert_eq!(client_id, "client_secret");
+                assert_eq!(redirect_uri, REDIRECT_URI);
+                assert_eq!(scope, DEFAULT_SCOPES);
+                assert_eq!(force_verify, true);
+            }
+            req => assert!(false, "Expected AuthReq::ImplicitCode but got: {:?}", req)
+        }
     }
 }
