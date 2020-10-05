@@ -52,31 +52,36 @@ pub trait Plugin: Send + Sync {
 pub trait StreamablePlugin: Send + Sync + Debug {
     /// Create a new Stream sending messages into **output** and receiving messages to
     /// the returned sender.
+    ///
+    /// Must return only if the whole stream was processed or an error occurred.
+    ///
+    /// Should only return [PluginError] if the execution of the plugin can't be continued.w
     async fn stream(
         &self,
         input: UnboundedReceiver<Message>,
         output: UnboundedSender<Vec<Message>>,
-    ) -> Result<(), InvocationError>;
+    ) -> Result<(), PluginError>;
 
     fn info(&self) -> PluginInfo;
 }
 
+/// Wrapper for any Error a Plugin generates.
 #[derive(Debug, Clone)]
-pub struct InvocationError(Arc<dyn Error>);
+pub struct PluginError(Arc<dyn Error>);
 
-/// Marker trait for all traits which are not InvocationError.
+/// Marker trait for all traits which are not [PluginError].
 pub auto trait NotInvocErr {}
-impl !NotInvocErr for InvocationError {}
+impl !NotInvocErr for PluginError {}
 
-impl<E: 'static + Error + NotInvocErr> From<E> for InvocationError {
+impl<E: 'static + Error + NotInvocErr> From<E> for PluginError {
     fn from(val: E) -> Self {
-        InvocationError(Arc::new(val))
+        PluginError(Arc::new(val))
     }
 }
 
-impl Error for InvocationError {}
+impl Error for PluginError {}
 
-impl Display for InvocationError {
+impl Display for PluginError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "InvocationError: {}", self.0)
     }
@@ -123,7 +128,7 @@ impl StreamablePlugin for PluginProxy {
         &self,
         input: UnboundedReceiver<Message>,
         output: UnboundedSender<Vec<Message>>,
-    ) -> Result<(), InvocationError> {
+    ) -> Result<(), PluginError> {
         self.command.stream(input, output).await
     }
 
@@ -157,7 +162,7 @@ impl PluginRegistrar {
 
 #[cfg(test)]
 mod tests {
-    use crate::plugin::{InvocationError, Plugin, PluginInfo, StreamablePlugin};
+    use crate::plugin::{Plugin, PluginError, PluginInfo, StreamablePlugin};
     use crate::Message;
     use async_trait::async_trait;
     use bot_rs_core_derive::*;
@@ -165,14 +170,16 @@ mod tests {
     use test::Bencher;
     use tokio::runtime::Builder;
 
+    use crate as bot_rs_core;
+
     #[derive(Debug, StreamablePlugin)]
     struct TestCommand;
 
     #[async_trait]
     impl Plugin for TestCommand {
-        type Error = InvocationError;
+        type Error = PluginError;
 
-        async fn call(&self, _message: Message) -> Result<Vec<Message>, InvocationError> {
+        async fn call(&self, _message: Message) -> Result<Vec<Message>, PluginError> {
             Ok(Vec::new())
         }
 
@@ -188,7 +195,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_compile() -> Result<(), InvocationError> {
+    async fn test_compile() -> Result<(), PluginError> {
         let message = Message::Irc(irc_rust::Message::from("CMD :test".to_string()));
         let result = TestCommand.call(message).await?;
         assert!(result.is_empty());

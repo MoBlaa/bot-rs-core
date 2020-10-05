@@ -13,18 +13,17 @@ pub fn piped_command_derive(input: TokenStream) -> TokenStream {
 fn impl_piped_command(ast: &syn::DeriveInput) -> TokenStream {
     let name = &ast.ident;
     let gen = quote! {
-        #[async_trait]
+        #[async_trait::async_trait]
         impl StreamablePlugin for #name {
             async fn stream(
                 &self,
                 mut input: futures::channel::mpsc::UnboundedReceiver<Message>,
                 mut output: futures::channel::mpsc::UnboundedSender<Vec<Message>>)
-            -> Result<(), InvocationError> {
+            -> Result<(), bot_rs_core::plugin::PluginError> {
                     // Read next message from input channel
                     while let Some(msg) = futures::stream::StreamExt::next(&mut input).await {
                         // Call out Plugin implementation
-                        let results = self.call(msg).await
-                            .map_err(InvocationError::from);
+                        let results = self.call(msg).await?;
                         // Send the results to the output channel
                         futures::sink::SinkExt::send(&mut output, results).await.expect("failed to send results to output");
                     }

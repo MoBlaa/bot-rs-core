@@ -15,7 +15,7 @@ use std::fmt::Display;
 /// Its recommended to use this before processing the command.
 ///
 /// ```rust,no_run
-/// use bot_rs_core::plugin::{Plugin, PluginInfo, InvocationError};
+/// use bot_rs_core::plugin::{Plugin, PluginInfo, PluginError};
 /// use bot_rs_core::Message;
 /// use async_trait::async_trait;
 /// use bot_rs_core::profile::{Profiles, Profile};
@@ -25,9 +25,9 @@ use std::fmt::Display;
 ///
 /// #[async_trait]
 /// impl Plugin for TestPlugin{
-///     type Error = InvocationError;
+///     type Error = PluginError;
 ///
-///     async fn call(&self, message: Message) -> Result<Vec<Message>, InvocationError> {
+///     async fn call(&self, message: Message) -> Result<Vec<Message>, PluginError> {
 ///         match self.0.rights().allowed(&message) {
 ///             Some(true) => (),// Message was checked by a AccessFilter and is allowed,
 ///             Some(false) => (),// Message was checked by a AccessFilter and is not allowed

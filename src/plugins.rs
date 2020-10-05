@@ -1,5 +1,5 @@
 use crate::plugin::{
-    CommandDeclaration, InvocationError, PluginInfo, PluginProxy, PluginRegistrar, StreamablePlugin,
+    CommandDeclaration, PluginError, PluginInfo, PluginProxy, PluginRegistrar, StreamablePlugin,
 };
 use crate::{Message, CORE_VERSION, RUSTC_VERSION};
 use async_trait::async_trait;
@@ -125,7 +125,7 @@ impl StreamablePlugin for Plugins {
         &self,
         mut input: UnboundedReceiver<Message>,
         output: UnboundedSender<Vec<Message>>,
-    ) -> Result<(), InvocationError> {
+    ) -> Result<(), PluginError> {
         let mut channel_inputs = Vec::with_capacity(self.commands.len());
         for cmd in self.commands.iter() {
             let (write, read) = unbounded();
@@ -164,7 +164,7 @@ impl StreamablePlugin for Plugins {
 
 #[cfg(test)]
 mod tests {
-    use crate::plugin::{InvocationError, Plugin, PluginInfo, PluginProxy, StreamablePlugin};
+    use crate::plugin::{Plugin, PluginError, PluginInfo, PluginProxy, StreamablePlugin};
     use crate::plugins::Plugins;
     use crate::Message;
     use async_trait::async_trait;
@@ -174,14 +174,16 @@ mod tests {
     use test::Bencher;
     use tokio::runtime::{Builder, Runtime};
 
+    use crate as bot_rs_core;
+
     #[derive(Debug, StreamablePlugin)]
     struct TestCommand;
 
     #[async_trait]
     impl Plugin for TestCommand {
-        type Error = InvocationError;
+        type Error = PluginError;
 
-        async fn call(&self, _message: Message) -> Result<Vec<Message>, InvocationError> {
+        async fn call(&self, _message: Message) -> Result<Vec<Message>, PluginError> {
             Ok(Vec::new())
         }
 
