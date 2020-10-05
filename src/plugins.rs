@@ -179,6 +179,8 @@ mod tests {
 
     #[async_trait]
     impl Plugin for TestCommand {
+        type Error = InvocationError;
+
         async fn call(&self, _message: Message) -> Result<Vec<Message>, InvocationError> {
             Ok(Vec::new())
         }

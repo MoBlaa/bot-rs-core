@@ -36,10 +36,12 @@ impl Display for PluginInfo {
     }
 }
 
-/// Handles single command invocations immediately returning their result.
+/// Handles single command invocations returning their result.
 #[async_trait]
 pub trait Plugin: Send + Sync {
-    async fn call(&self, message: Message) -> Result<Vec<Message>, InvocationError>;
+    type Error;
+
+    async fn call(&self, message: Message) -> Result<Vec<Message>, Self::Error>;
 
     fn info(&self) -> PluginInfo;
 }
@@ -182,6 +184,8 @@ mod tests {
 
     #[async_trait]
     impl Plugin for TestCommand {
+        type Error = InvocationError;
+
         async fn call(&self, _message: Message) -> Result<Vec<Message>, InvocationError> {
             Ok(Vec::new())
         }

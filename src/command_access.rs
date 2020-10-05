@@ -25,6 +25,8 @@ use std::fmt::Display;
 ///
 /// #[async_trait]
 /// impl Plugin for TestPlugin{
+///     type Error = InvocationError;
+///
 ///     async fn call(&self, message: Message) -> Result<Vec<Message>, InvocationError> {
 ///         match self.0.rights().allowed(&message) {
 ///             Some(true) => (),// Message was checked by a AccessFilter and is allowed,
