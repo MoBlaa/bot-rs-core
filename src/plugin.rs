@@ -61,23 +61,16 @@ pub trait StreamablePlugin: Send + Sync + Debug {
     fn info(&self) -> PluginInfo;
 }
 
-#[derive(Debug, Eq, PartialEq, Clone, Hash, Serialize, Deserialize)]
-pub enum InvocationError {
-    InvalidArgumentCount { expected: usize, found: usize },
-    Other { msg: String },
-}
+#[derive(Debug, Clone)]
+pub struct InvocationError(Arc<dyn Error>);
 
-impl From<String> for InvocationError {
-    fn from(other: String) -> Self {
-        InvocationError::Other { msg: other }
-    }
-}
+/// Marker trait for all traits which are not InvocationError.
+pub auto trait NotInvocErr {}
+impl !NotInvocErr for InvocationError {}
 
-impl From<&str> for InvocationError {
-    fn from(other: &str) -> Self {
-        InvocationError::Other {
-            msg: other.to_string(),
-        }
+impl<E: 'static + Error + NotInvocErr> From<E> for InvocationError {
+    fn from(val: E) -> Self {
+        InvocationError(Arc::new(val))
     }
 }
 
@@ -85,14 +78,7 @@ impl Error for InvocationError {}
 
 impl Display for InvocationError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            InvocationError::Other { msg } => writeln!(f, "InvocationError: {}", msg),
-            InvocationError::InvalidArgumentCount { expected, found } => writeln!(
-                f,
-                "Invalid argument count: {} (expected {})",
-                found, expected
-            ),
-        }
+        write!(f, "InvocationError: {}", self.0)
     }
 }
 

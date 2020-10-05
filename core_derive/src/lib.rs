@@ -23,7 +23,8 @@ fn impl_piped_command(ast: &syn::DeriveInput) -> TokenStream {
                     // Read next message from input channel
                     while let Some(msg) = futures::stream::StreamExt::next(&mut input).await {
                         // Call out Plugin implementation
-                        let results = self.call(msg).await?;
+                        let results = self.call(msg).await
+                            .map_err(InvocationError::from);
                         // Send the results to the output channel
                         futures::sink::SinkExt::send(&mut output, results).await.expect("failed to send results to output");
                     }
