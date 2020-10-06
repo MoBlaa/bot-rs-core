@@ -1,12 +1,11 @@
-use core::fmt;
-use serde::export::Formatter;
-use std::fmt::Display;
+use crate::twitch_api::{Req, ReqV5};
 
-/// Builder struct for the `Get Users` endpoint of twitch ([API docs](https://dev.twitch.tv/docs/v5/reference/users#get-users)).
+/// Request Builder struct for the `Get Users` endpoint of twitch ([API docs](https://dev.twitch.tv/docs/v5/reference/users#get-users)).
 ///
 /// To create a new request you can either use [GetUserReq::from] with a Iterator over string-like
 /// elements or [GetUserReq::new] if you have a vector of Strings.
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Display)]
+#[display(fmt = "{}", "self.url()")]
 pub struct GetUsersReq {
     usernames: Vec<String>,
     base: String,
@@ -51,10 +50,9 @@ where
     }
 }
 
-impl Display for GetUsersReq {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
+impl Req for GetUsersReq {
+    fn url(&self) -> String {
+        format!(
             "{}://{}/kraken/users?login={}",
             self.protocol,
             self.base,
@@ -62,6 +60,8 @@ impl Display for GetUsersReq {
         )
     }
 }
+
+impl ReqV5 for GetUsersReq {}
 
 /// Data struct containing data returned from twitch by utilizing [GetUserReq] and represents a
 /// list of users.

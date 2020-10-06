@@ -260,6 +260,8 @@ extern crate bot_rs_core_derive;
 extern crate rocket;
 #[cfg(test)]
 extern crate test;
+#[macro_use]
+extern crate derive_more;
 
 #[cfg(feature = "default")]
 pub mod auth;
