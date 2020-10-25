@@ -14,7 +14,7 @@ readme = "README.md"
 [features]
 default = []
 plugin-loader = ["rocket", "tokio"]
-twitch-api = ["chrono", "rocket", "url", "reqwest"] # This may be better exported to a separate package
+twitch-api = ["chrono", "rocket", "url", "reqwest", "derive_more"] # This may be better exported to a separate package
 derive = ["bot-rs-core-derive"]
 
 [dependencies]
@@ -38,7 +38,7 @@ chrono = { version = "0.4.19", features = ["serde"], optional = true }
 hyper = { version = "0.13.8", optional = true }
 bot-rs-core-derive = { version = "0.4.3", optional = true }
 tokio = { version = "0.2", features = ["rt-core"], optional = true}
-derive_more = "0.99.11"
+derive_more = { version = "0.99.11", optional = true }
 
 [dev-dependencies]
 tokio = { version = "0.2.22", features = ["full"] }

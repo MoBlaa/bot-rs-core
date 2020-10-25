@@ -260,6 +260,7 @@ extern crate bot_rs_core_derive;
 extern crate rocket;
 #[cfg(test)]
 extern crate test;
+#[cfg(feature = "twitch-api")]
 #[macro_use]
 extern crate derive_more;
 
