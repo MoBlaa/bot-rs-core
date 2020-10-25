@@ -4,6 +4,11 @@ version = "0.4.3"
 authors = ["mo_blaa <mo.blaa@pm.me>"]
 edition = "2018"
 publish = true
+repository = "https://github.com/MoBlaa/bot-rs-core.git"
+description = "Derive Macro crate for bot-rs-core library"
+license = "MIT"
+keywords = ["twitch", "chatbot"]
+categories = ["web-programming"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
