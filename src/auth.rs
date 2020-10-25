@@ -104,6 +104,8 @@ impl<'a> TryFrom<&'a irc_rust::Message> for UserInfo {
             .prefix()
             .expect("invalid irc message")
             .map(|prefix| prefix.name().to_string())
+            // Sometimes (USERNOTICE) the username is contained as login tag
+            .or_else(|| tags.get("login").map(|val| val.to_string()))
             .ok_or(InvalidIrcMessageError::MissingPrefix(irc_message))?;
 
         Ok(UserInfo::Twitch {
@@ -130,8 +132,8 @@ impl fmt::Display for Credentials {
 }
 
 impl<S> From<S> for Credentials
-where
-    S: AsRef<str>,
+    where
+        S: AsRef<str>,
 {
     fn from(t: S) -> Self {
         let s_t = t.as_ref();
@@ -167,7 +169,7 @@ mod tests {
             Credentials::OAuthToken {
                 token: "thisisatoken".to_string()
             }
-            .to_string(),
+                .to_string(),
             "oauth:thisisatoken"
         );
         assert_eq!(
@@ -245,7 +247,7 @@ mod tests {
                 result,
                 Ok(UserInfo::Twitch {
                     name: "username".to_string(),
-                    id: "userid1".to_string()
+                    id: "userid1".to_string(),
                 })
             );
         }
