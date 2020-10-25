@@ -1,4 +1,4 @@
-use reqwest::{RequestBuilder, Client};
+use reqwest::{Client, RequestBuilder};
 
 pub mod auth;
 pub mod follows;
@@ -10,7 +10,8 @@ pub trait Req: Sized {
 
 pub trait ReqV5: Req {
     fn into_builder(self, client: &Client, client_id: String) -> RequestBuilder {
-        client.get(&self.url())
+        client
+            .get(&self.url())
             .header(reqwest::header::ACCEPT, "application/vnd.twitchtv.v5+json")
             .header("client-id", client_id)
     }
@@ -19,7 +20,8 @@ pub trait ReqV5: Req {
 pub trait ReqNew: Req {
     fn authorization(&self) -> String;
     fn into_builder(self, client: &Client, client_id: String) -> RequestBuilder {
-        client.get(&self.url())
+        client
+            .get(&self.url())
             .header(reqwest::header::AUTHORIZATION, self.authorization())
             .header("client-id", client_id)
     }

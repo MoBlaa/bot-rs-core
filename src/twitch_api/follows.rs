@@ -1,5 +1,5 @@
-use chrono::{DateTime, NaiveDateTime};
 use crate::twitch_api::{Req, ReqV5};
+use chrono::{DateTime, NaiveDateTime};
 
 /// Request struct for the `Get Users Follows` endpoint of twitch ([API docs](https://dev.twitch.tv/docs/api/reference#get-users-follows)).
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Display)]
@@ -12,10 +12,7 @@ pub struct GetUsersFollowsReq {
 impl GetUsersFollowsReq {
     pub fn new(from_id: Option<String>, to_id: Option<String>) -> Self {
         assert!(from_id.is_some() || to_id.is_some());
-        GetUsersFollowsReq {
-            from_id,
-            to_id,
-        }
+        GetUsersFollowsReq { from_id, to_id }
     }
 }
 
