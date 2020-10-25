@@ -3,6 +3,7 @@ name = "bot-rs-core-derive"
 version = "0.4.3"
 authors = ["mo_blaa <mo.blaa@pm.me>"]
 edition = "2018"
+publish = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
