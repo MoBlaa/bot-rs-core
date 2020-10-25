@@ -298,19 +298,7 @@ pub enum Message {
 impl Display for Message {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Message::Irc(msg) => {
-                let str_msg = msg.to_string();
-                let byte_len = str_msg.bytes().len();
-                if byte_len > 512 {
-                    error!(
-                        "Raw IRC Message exceeds exceeds 512 Byte length: {}",
-                        byte_len
-                    );
-                    Err(fmt::Error)
-                } else {
-                    write!(f, "{}", msg)
-                }
-            }
+            Message::Irc(msg) => write!(f, "{}", msg)
         }
     }
 }
