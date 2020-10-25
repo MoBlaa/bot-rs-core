@@ -69,13 +69,8 @@ impl UserInfo {
 #[cfg(feature = "twitch-api")]
 impl From<crate::twitch_api::users::UserRes> for UserInfo {
     fn from(res: crate::twitch_api::users::UserRes) -> Self {
-        let username = if res.display_name.is_empty() {
-            res.name
-        } else {
-            res.display_name
-        };
         UserInfo::Twitch {
-            name: username,
+            name: res.name,
             id: res.id,
         }
     }
@@ -84,13 +79,8 @@ impl From<crate::twitch_api::users::UserRes> for UserInfo {
 #[cfg(feature = "twitch-api")]
 impl From<&crate::twitch_api::users::UserRes> for UserInfo {
     fn from(res: &crate::twitch_api::users::UserRes) -> Self {
-        let username = if res.display_name.is_empty() {
-            &res.name
-        } else {
-            &res.display_name
-        };
         UserInfo::Twitch {
-            name: username.clone(),
+            name: res.name.clone(),
             id: res.id.clone(),
         }
     }
@@ -110,17 +100,11 @@ impl<'a> TryFrom<&'a irc_rust::Message> for UserInfo {
             .map(|id| id.to_string())
             .ok_or(InvalidIrcMessageError::MissingUserId(irc_message))?;
 
-        let username = tags
-            .get("display-name")
-            .map(|display_name| display_name.to_string());
-        let username = match username {
-            None => irc_message
-                .prefix()
-                .expect("invalid irc message")
-                .map(|prefix| prefix.name().to_string())
-                .ok_or(InvalidIrcMessageError::MissingPrefix(irc_message))?,
-            Some(username) => username,
-        };
+        let username = irc_message
+            .prefix()
+            .expect("invalid irc message")
+            .map(|prefix| prefix.name().to_string())
+            .ok_or(InvalidIrcMessageError::MissingPrefix(irc_message))?;
 
         Ok(UserInfo::Twitch {
             name: username,
@@ -255,22 +239,6 @@ mod tests {
             let no_user_id = irc_rust::Message::builder("PRIVMSG")
                 .tag("user-id", "userid1")
                 .prefix("username", None, None)
-                .build();
-            let result = UserInfo::try_from(&no_user_id);
-            assert_eq!(
-                result,
-                Ok(UserInfo::Twitch {
-                    name: "username".to_string(),
-                    id: "userid1".to_string()
-                })
-            );
-        }
-
-        #[test]
-        fn test_irc_with_display_name() {
-            let no_user_id = irc_rust::Message::builder("PRIVMSG")
-                .tag("user-id", "userid1")
-                .tag("display-name", "username")
                 .build();
             let result = UserInfo::try_from(&no_user_id);
             assert_eq!(
