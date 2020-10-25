@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1603626262110,
+  "lastUpdate": 1603636415426,
   "repoUrl": "https://github.com/MoBlaa/bot-rs-core",
   "entries": {
     "Benchmark": [
@@ -671,6 +671,90 @@ window.BENCHMARK_DATA = {
             "name": "plugins__tests__bench_64_plugin_threaded_scheduler_10msload",
             "value": 4805549,
             "range": "± 1565741",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mo.blaa@pm.me",
+            "name": "moblaa",
+            "username": "MoBlaa"
+          },
+          "committer": {
+            "email": "mo.blaa@pm.me",
+            "name": "moblaa",
+            "username": "MoBlaa"
+          },
+          "distinct": true,
+          "id": "a01faea495c8f9706b1e5bd3a512dab8d74efceb",
+          "message": "updated version",
+          "timestamp": "2020-10-25T14:57:00+01:00",
+          "tree_id": "96d10c27c788c499a5147a585fcd903b5c200d8f",
+          "url": "https://github.com/MoBlaa/bot-rs-core/commit/a01faea495c8f9706b1e5bd3a512dab8d74efceb"
+        },
+        "date": 1603636414922,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "plugin__tests__bench_call",
+            "value": 163,
+            "range": "± 39",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "plugin__tests__bench_derive_delegation",
+            "value": 599,
+            "range": "± 116",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "plugins__tests__bench_1_plugin_basic_scheduler",
+            "value": 828,
+            "range": "± 180",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "plugins__tests__bench_1_plugin_basic_scheduler_100_load",
+            "value": 41219,
+            "range": "± 5003",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "plugins__tests__bench_1_plugin_threaded_scheduler",
+            "value": 15348,
+            "range": "± 3264",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "plugins__tests__bench_1_plugin_threaded_scheduler_100_load",
+            "value": 84817,
+            "range": "± 16005",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "plugins__tests__bench_64_plugin_basic_scheduler",
+            "value": 24757,
+            "range": "± 5588",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "plugins__tests__bench_64_plugin_basic_scheduler_100_load",
+            "value": 2014168,
+            "range": "± 321540",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "plugins__tests__bench_64_plugin_threaded_scheduler",
+            "value": 69467,
+            "range": "± 17707",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "plugins__tests__bench_64_plugin_threaded_scheduler_10msload",
+            "value": 3776359,
+            "range": "± 1040648",
             "unit": "ns/iter"
           }
         ]
