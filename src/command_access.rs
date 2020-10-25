@@ -48,9 +48,10 @@ pub struct AccessRights {
 }
 
 impl AccessRights {
+    /// Creates default access right which allows messages of the broadcaster and non-command invokations.
     pub fn new() -> Self {
         AccessRights {
-            filters: vec![AccessFilter::All(vec![
+            filters: vec![AccessFilter::Any(vec![
                 AccessFilter::broadcaster(),
                 AccessFilter::default_command_start(),
             ])],
@@ -105,8 +106,9 @@ impl AccessFilter {
         AccessFilter::Badge("broadcaster/*".to_string())
     }
 
+    /// Only allows messages not invoking any commands.
     pub fn default_command_start() -> Self {
-        AccessFilter::Trailing(r"^\s*(!|\?|¡|¿)".to_string())
+        AccessFilter::Trailing(r"^\s*[^!\?¡¿]".to_string())
     }
 
     /// Returns if the filter is handling the message. This can mean multiple things based
