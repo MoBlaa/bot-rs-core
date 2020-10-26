@@ -254,4 +254,61 @@ mod tests {
         let message = Message::Irc(irc_rust::Message::builder("PRIVMSG").build());
         assert!(!trailing_filter.handles(&message));
     }
+
+    #[test]
+    fn test_all_filter() {
+        let all_filter = AccessFilter::All(vec![
+            AccessFilter::Badge("moderator/*".to_string()),
+            AccessFilter::Trailing("^hello, world!$".to_string())
+        ]);
+
+        // Everything as expected
+        let message = Message::Irc(
+            irc_rust::Message::builder("PRIVMSG")
+                .trailing("hello, world!")
+                .tag("badges", "moderator/1")
+                .build()
+        );
+        assert!(all_filter.handles(&message));
+        assert!(all_filter.matches(&message));
+
+        // Handles but badge doesn't match
+        let message = Message::Irc(
+            irc_rust::Message::builder("PRIVMSG")
+                .trailing("hello, world!")
+                .tag("badges", "broadcaster/1")
+                .build()
+        );
+        assert!(all_filter.handles(&message));
+        assert!(!all_filter.matches(&message));
+
+        // Handles but trailing doesn't match
+        let message = Message::Irc(
+            irc_rust::Message::builder("PRIVMSG")
+                .trailing("hello, kevin!")
+                .tag("badges", "moderator/1")
+                .build()
+        );
+        assert!(all_filter.handles(&message));
+        assert!(!all_filter.matches(&message));
+
+        // Missing tag isn't handled
+        let message = Message::Irc(
+            irc_rust::Message::builder("PRIVMSG")
+                .trailing("hello, world!")
+                .build()
+        );
+        assert!(!all_filter.handles(&message));
+
+        // Missing trailing isn't handled
+        let message = Message::Irc(
+            irc_rust::Message::builder("PRIVMSG")
+                .tag("badges", "moderator/1")
+                .build()
+        );
+        assert!(!all_filter.handles(&message));
+
+        let message = Message::Irc(irc_rust::Message::builder("PRIVMSG").build());
+        assert!(!all_filter.handles(&message));
+    }
 }
