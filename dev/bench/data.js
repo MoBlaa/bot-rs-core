@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1603709070907,
+  "lastUpdate": 1603727675155,
   "repoUrl": "https://github.com/MoBlaa/bot-rs-core",
   "entries": {
     "Benchmark": [
@@ -1007,6 +1007,90 @@ window.BENCHMARK_DATA = {
             "name": "plugins__tests__bench_64_plugin_threaded_scheduler_10msload",
             "value": 4081301,
             "range": "± 1099438",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "mo.blaa@pm.me",
+            "name": "moblaa",
+            "username": "MoBlaa"
+          },
+          "committer": {
+            "email": "mo.blaa@pm.me",
+            "name": "moblaa",
+            "username": "MoBlaa"
+          },
+          "distinct": true,
+          "id": "428a3e8725c1d87e2d1fb3716047f5b7f0ea6b7e",
+          "message": "added twitch extensions for irc messages from twitch",
+          "timestamp": "2020-10-26T16:43:56+01:00",
+          "tree_id": "f8eaf76e5ecc2699114c94e979b9a8091ed62586",
+          "url": "https://github.com/MoBlaa/bot-rs-core/commit/428a3e8725c1d87e2d1fb3716047f5b7f0ea6b7e"
+        },
+        "date": 1603727674756,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "plugin__tests__bench_call",
+            "value": 194,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "plugin__tests__bench_derive_delegation",
+            "value": 747,
+            "range": "± 30",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "plugins__tests__bench_1_plugin_basic_scheduler",
+            "value": 1048,
+            "range": "± 84",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "plugins__tests__bench_1_plugin_basic_scheduler_100_load",
+            "value": 53883,
+            "range": "± 3278",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "plugins__tests__bench_1_plugin_threaded_scheduler",
+            "value": 17248,
+            "range": "± 1793",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "plugins__tests__bench_1_plugin_threaded_scheduler_100_load",
+            "value": 96242,
+            "range": "± 14856",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "plugins__tests__bench_64_plugin_basic_scheduler",
+            "value": 32099,
+            "range": "± 2619",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "plugins__tests__bench_64_plugin_basic_scheduler_100_load",
+            "value": 2342705,
+            "range": "± 73328",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "plugins__tests__bench_64_plugin_threaded_scheduler",
+            "value": 84943,
+            "range": "± 3568",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "plugins__tests__bench_64_plugin_threaded_scheduler_10msload",
+            "value": 4683691,
+            "range": "± 1454372",
             "unit": "ns/iter"
           }
         ]
