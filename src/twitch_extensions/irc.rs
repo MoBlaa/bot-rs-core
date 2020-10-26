@@ -1,9 +1,9 @@
+use crate::auth::UserInfo;
 use irc_rust::{InvalidIrcFormatError, Message, Params};
-use std::ops::{Deref};
+use std::convert::TryFrom;
 use std::error::Error;
 use std::fmt;
-use std::convert::TryFrom;
-use crate::auth::UserInfo;
+use std::ops::Deref;
 
 #[derive(Debug)]
 pub struct InvalidCommand(String, String);
@@ -24,7 +24,7 @@ pub enum GetPropertyError {
     MissingPrefix,
     MissingParams,
     MissingParam(usize, &'static str),
-    MissingTrailingParam
+    MissingTrailingParam,
 }
 
 impl fmt::Display for GetPropertyError {
@@ -35,8 +35,10 @@ impl fmt::Display for GetPropertyError {
             Self::MissingTag(name) => write!(f, "required tag '{}' is missing", name),
             Self::MissingPrefix => write!(f, "missing irc prefix"),
             Self::MissingParams => write!(f, "missing irc params"),
-            Self::MissingParam(index, name) => write!(f, "missing {} parameter at index {}", name, index),
-            Self::MissingTrailingParam => write!(f, "missing irc trailing parameter")
+            Self::MissingParam(index, name) => {
+                write!(f, "missing {} parameter at index {}", name, index)
+            }
+            Self::MissingTrailingParam => write!(f, "missing irc trailing parameter"),
         }
     }
 }
@@ -72,7 +74,7 @@ impl PrivMsg {
         let tag = tags.unwrap().get(name);
         match tag {
             None => Err(GetPropertyError::MissingTag(name)),
-            Some(value) => Ok(value)
+            Some(value) => Ok(value),
         }
     }
 
@@ -107,11 +109,10 @@ impl PrivMsg {
     }
 
     pub fn username(&self) -> Result<&str, GetPropertyError> {
-        let prefix = self.prefix()?
-            .map(|prefix| prefix.name());
+        let prefix = self.prefix()?.map(|prefix| prefix.name());
         match prefix {
             None => Err(GetPropertyError::MissingPrefix),
-            Some(prefix) => Ok(prefix)
+            Some(prefix) => Ok(prefix),
         }
     }
 
@@ -141,15 +142,20 @@ impl PrivMsg {
     }
 
     pub fn channel(&self) -> Result<&str, GetPropertyError> {
-        self.get_param(0)
-            .and_then(|param| if let Some(param) = param { Ok(param) } else { Err(GetPropertyError::MissingParam(0, "channel")) })
+        self.get_param(0).and_then(|param| {
+            if let Some(param) = param {
+                Ok(param)
+            } else {
+                Err(GetPropertyError::MissingParam(0, "channel"))
+            }
+        })
     }
 
     pub fn message(&self) -> Result<&str, GetPropertyError> {
         let params = self.get_params()?;
         match params.trailing() {
             None => Err(GetPropertyError::MissingTrailingParam),
-            Some(trailing) => Ok(trailing)
+            Some(trailing) => Ok(trailing),
         }
     }
 }
@@ -184,5 +190,3 @@ impl TryFrom<PrivMsg> for UserInfo {
         })
     }
 }
-
-

@@ -348,7 +348,11 @@ mod tests {
                 assert_eq!(scope, DEFAULT_SCOPES);
                 assert_eq!(force_verify, true);
             }
-            req => assert!(false, "Expected AuthReq::AuthorizationCode but got: {:?}", req),
+            req => assert!(
+                false,
+                "Expected AuthReq::AuthorizationCode but got: {:?}",
+                req
+            ),
         }
     }
 

@@ -60,7 +60,7 @@ impl AccessRights {
 
     pub const fn empty() -> Self {
         AccessRights {
-            filters: Vec::new()
+            filters: Vec::new(),
         }
     }
 
@@ -70,7 +70,7 @@ impl AccessRights {
     }
 
     /// Returns an Iterator over all
-    pub fn iter(&self) -> impl Iterator<Item=&AccessFilter> {
+    pub fn iter(&self) -> impl Iterator<Item = &AccessFilter> {
         self.filters.iter()
     }
 
@@ -244,7 +244,7 @@ mod tests {
         let message = Message::Irc(
             irc_rust::Message::builder("PRIVMSG")
                 .trailing("!command")
-                .build()
+                .build(),
         );
         assert!(trailing_filter.handles(&message));
         assert!(trailing_filter.matches(&message));
@@ -252,7 +252,7 @@ mod tests {
         let message = Message::Irc(
             irc_rust::Message::builder("PRIVMSG")
                 .trailing("Invalid")
-                .build()
+                .build(),
         );
         assert!(trailing_filter.handles(&message));
         assert!(!trailing_filter.matches(&message));
@@ -265,7 +265,7 @@ mod tests {
     fn test_all_filter() {
         let all_filter = AccessFilter::All(vec![
             AccessFilter::Badge("moderator/*".to_string()),
-            AccessFilter::Trailing("^hello, world!$".to_string())
+            AccessFilter::Trailing("^hello, world!$".to_string()),
         ]);
 
         // Everything as expected
@@ -273,7 +273,7 @@ mod tests {
             irc_rust::Message::builder("PRIVMSG")
                 .trailing("hello, world!")
                 .tag("badges", "moderator/1")
-                .build()
+                .build(),
         );
         assert!(all_filter.handles(&message));
         assert!(all_filter.matches(&message));
@@ -283,7 +283,7 @@ mod tests {
             irc_rust::Message::builder("PRIVMSG")
                 .trailing("hello, world!")
                 .tag("badges", "broadcaster/1")
-                .build()
+                .build(),
         );
         assert!(all_filter.handles(&message));
         assert!(!all_filter.matches(&message));
@@ -293,7 +293,7 @@ mod tests {
             irc_rust::Message::builder("PRIVMSG")
                 .trailing("hello, kevin!")
                 .tag("badges", "moderator/1")
-                .build()
+                .build(),
         );
         assert!(all_filter.handles(&message));
         assert!(!all_filter.matches(&message));
@@ -302,7 +302,7 @@ mod tests {
         let message = Message::Irc(
             irc_rust::Message::builder("PRIVMSG")
                 .trailing("hello, world!")
-                .build()
+                .build(),
         );
         assert!(!all_filter.handles(&message));
 
@@ -310,7 +310,7 @@ mod tests {
         let message = Message::Irc(
             irc_rust::Message::builder("PRIVMSG")
                 .tag("badges", "moderator/1")
-                .build()
+                .build(),
         );
         assert!(!all_filter.handles(&message));
 
@@ -322,7 +322,7 @@ mod tests {
     fn test_any_filter() {
         let any_filter = AccessFilter::Any(vec![
             AccessFilter::Badge("moderator/*".to_string()),
-            AccessFilter::Trailing("^hello, world!$".to_string())
+            AccessFilter::Trailing("^hello, world!$".to_string()),
         ]);
 
         // Everything as expected
@@ -330,7 +330,7 @@ mod tests {
             irc_rust::Message::builder("PRIVMSG")
                 .trailing("hello, world!")
                 .tag("badges", "moderator/1")
-                .build()
+                .build(),
         );
         assert!(any_filter.handles(&message));
         assert!(any_filter.matches(&message));
@@ -340,7 +340,7 @@ mod tests {
             irc_rust::Message::builder("PRIVMSG")
                 .trailing("hello, world!")
                 .tag("badges", "broadcaster/1")
-                .build()
+                .build(),
         );
         assert!(any_filter.handles(&message));
         assert!(any_filter.matches(&message));
@@ -349,7 +349,7 @@ mod tests {
             irc_rust::Message::builder("PRIVMSG")
                 .trailing("hello, kevin!")
                 .tag("badges", "moderator/1")
-                .build()
+                .build(),
         );
         assert!(any_filter.handles(&message));
         assert!(any_filter.matches(&message));
@@ -357,7 +357,7 @@ mod tests {
         let message = Message::Irc(
             irc_rust::Message::builder("PRIVMSG")
                 .trailing("hello, world!")
-                .build()
+                .build(),
         );
         assert!(any_filter.handles(&message));
         assert!(any_filter.matches(&message));
@@ -365,7 +365,7 @@ mod tests {
         let message = Message::Irc(
             irc_rust::Message::builder("PRIVMSG")
                 .tag("badges", "moderator/1")
-                .build()
+                .build(),
         );
         assert!(any_filter.handles(&message));
         assert!(any_filter.matches(&message));

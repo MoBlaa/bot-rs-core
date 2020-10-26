@@ -74,7 +74,13 @@ pub struct Profile {
 
 impl Profile {
     pub fn empty() -> Self {
-        Self::new(String::new(), Vec::new(), String::new(), AccessRights::empty(), None)
+        Self::new(
+            String::new(),
+            Vec::new(),
+            String::new(),
+            AccessRights::empty(),
+            None,
+        )
     }
 
     pub fn new(
