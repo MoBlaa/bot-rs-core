@@ -311,4 +311,60 @@ mod tests {
         let message = Message::Irc(irc_rust::Message::builder("PRIVMSG").build());
         assert!(!all_filter.handles(&message));
     }
+
+    #[test]
+    fn test_any_filter() {
+        let any_filter = AccessFilter::Any(vec![
+            AccessFilter::Badge("moderator/*".to_string()),
+            AccessFilter::Trailing("^hello, world!$".to_string())
+        ]);
+
+        // Everything as expected
+        let message = Message::Irc(
+            irc_rust::Message::builder("PRIVMSG")
+                .trailing("hello, world!")
+                .tag("badges", "moderator/1")
+                .build()
+        );
+        assert!(any_filter.handles(&message));
+        assert!(any_filter.matches(&message));
+
+        // Matches if any of the filters matches
+        let message = Message::Irc(
+            irc_rust::Message::builder("PRIVMSG")
+                .trailing("hello, world!")
+                .tag("badges", "broadcaster/1")
+                .build()
+        );
+        assert!(any_filter.handles(&message));
+        assert!(any_filter.matches(&message));
+
+        let message = Message::Irc(
+            irc_rust::Message::builder("PRIVMSG")
+                .trailing("hello, kevin!")
+                .tag("badges", "moderator/1")
+                .build()
+        );
+        assert!(any_filter.handles(&message));
+        assert!(any_filter.matches(&message));
+
+        let message = Message::Irc(
+            irc_rust::Message::builder("PRIVMSG")
+                .trailing("hello, world!")
+                .build()
+        );
+        assert!(any_filter.handles(&message));
+        assert!(any_filter.matches(&message));
+
+        let message = Message::Irc(
+            irc_rust::Message::builder("PRIVMSG")
+                .tag("badges", "moderator/1")
+                .build()
+        );
+        assert!(any_filter.handles(&message));
+        assert!(any_filter.matches(&message));
+
+        let message = Message::Irc(irc_rust::Message::builder("PRIVMSG").build());
+        assert!(!any_filter.handles(&message));
+    }
 }
