@@ -276,8 +276,13 @@ pub mod plugins;
 pub mod profile;
 #[cfg(feature = "twitch-api")]
 pub mod twitch_api;
+#[cfg(feature = "twitch-extensions")]
+pub mod twitch_extensions;
 #[cfg(feature = "twitch-api")]
 mod utils;
+
+#[cfg(feature = "twitch-extensions")]
+pub use twitch_extensions::irc::*;
 
 #[cfg(feature = "derive")]
 pub use bot_rs_core_derive::*;

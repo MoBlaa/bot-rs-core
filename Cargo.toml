@@ -16,6 +16,7 @@ default = []
 plugin-loader = ["rocket", "tokio"]
 twitch-api = ["chrono", "rocket", "url", "reqwest", "derive_more"] # This may be better exported to a separate package
 derive = ["bot-rs-core-derive"]
+twitch-extensions = []
 
 [dependencies]
 irc-rust = { version = "0.3.2", features = ["serde"] }
