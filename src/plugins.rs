@@ -138,16 +138,14 @@ impl StreamablePlugin for Plugins {
             });
             channel_inputs.push(write);
         }
-        tokio::spawn(async move {
-            while let Some(msg) = input.next().await {
-                let mut sends = Vec::with_capacity(channel_inputs.len());
-                for sender in channel_inputs.iter_mut() {
-                    sends.push(sender.send(msg.clone()));
-                }
-                // Actually send to all channels/commands
-                join_all(sends).await;
+        while let Some(msg) = input.next().await {
+            let mut sends = Vec::with_capacity(channel_inputs.len());
+            for sender in channel_inputs.iter_mut() {
+                sends.push(sender.send(msg.clone()));
             }
-        });
+            // Actually send to all channels/commands
+            join_all(sends).await;
+        }
         Ok(())
     }
 
