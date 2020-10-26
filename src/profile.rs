@@ -74,13 +74,14 @@ pub struct Profile {
 
 impl Profile {
     pub fn empty() -> Self {
-        Self::new(String::new(), Vec::new(), String::new(), None)
+        Self::new(String::new(), Vec::new(), String::new(), AccessRights::empty(), None)
     }
 
     pub fn new(
         name: String,
         channels: Vec<String>,
         client_id: String,
+        rights: AccessRights,
         client_secret: Option<String>,
     ) -> Self {
         Profile {
@@ -89,7 +90,7 @@ impl Profile {
             client_id,
             client_secret,
             credentials: HashMap::new(),
-            rights: AccessRights::new(),
+            rights,
         }
     }
 

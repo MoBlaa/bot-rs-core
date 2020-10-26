@@ -58,6 +58,12 @@ impl AccessRights {
         }
     }
 
+    pub const fn empty() -> Self {
+        AccessRights {
+            filters: Vec::new()
+        }
+    }
+
     /// Returns if there are no filters.
     pub fn is_empty(&self) -> bool {
         self.filters.is_empty()
