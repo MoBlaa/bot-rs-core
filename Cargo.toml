@@ -42,6 +42,7 @@ derive_more = { version = "0.99.11", optional = true }
 
 [dev-dependencies]
 tokio = { version = "0.2.22", features = ["full"] }
+bot-rs-core-derive = "0.4.3"
 
 [build-dependencies]
 rustc_version = "0.2.3"

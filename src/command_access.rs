@@ -64,7 +64,7 @@ impl AccessRights {
     }
 
     /// Returns an Iterator over all
-    pub fn iter(&self) -> impl Iterator<Item = &AccessFilter> {
+    pub fn iter(&self) -> impl Iterator<Item=&AccessFilter> {
         self.filters.iter()
     }
 
@@ -229,5 +229,29 @@ mod tests {
         let message = Message::Irc(irc_rust::Message::builder("PRIVMSG").build());
         assert!(!badge_filter.handles(&message));
         assert!(!badge_filter.matches(&message));
+    }
+
+    #[test]
+    fn test_trailing_filter() {
+        let trailing_filter = AccessFilter::Trailing("^!command$".to_string());
+
+        let message = Message::Irc(
+            irc_rust::Message::builder("PRIVMSG")
+                .trailing("!command")
+                .build()
+        );
+        assert!(trailing_filter.handles(&message));
+        assert!(trailing_filter.matches(&message));
+
+        let message = Message::Irc(
+            irc_rust::Message::builder("PRIVMSG")
+                .trailing("Invalid")
+                .build()
+        );
+        assert!(trailing_filter.handles(&message));
+        assert!(!trailing_filter.matches(&message));
+
+        let message = Message::Irc(irc_rust::Message::builder("PRIVMSG").build());
+        assert!(!trailing_filter.handles(&message));
     }
 }
