@@ -132,8 +132,8 @@ impl fmt::Display for Credentials {
 }
 
 impl<S> From<S> for Credentials
-    where
-        S: AsRef<str>,
+where
+    S: AsRef<str>,
 {
     fn from(t: S) -> Self {
         let s_t = t.as_ref();
@@ -169,7 +169,7 @@ mod tests {
             Credentials::OAuthToken {
                 token: "thisisatoken".to_string()
             }
-                .to_string(),
+            .to_string(),
             "oauth:thisisatoken"
         );
         assert_eq!(

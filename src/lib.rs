@@ -298,7 +298,7 @@ pub enum Message {
 impl Display for Message {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Message::Irc(msg) => write!(f, "{}", msg)
+            Message::Irc(msg) => write!(f, "{}", msg),
         }
     }
 }
