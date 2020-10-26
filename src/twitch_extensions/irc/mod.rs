@@ -1,6 +1,6 @@
 use irc_rust::{InvalidIrcFormatError, Message};
-use std::fmt;
 use std::error::Error;
+use std::fmt;
 
 pub mod privmsg;
 
