@@ -1,4 +1,4 @@
-#![feature(proc_macro_hygiene, decl_macro, optin_builtin_traits, negative_impls)]
+#![feature(proc_macro_hygiene, decl_macro, auto_traits, negative_impls)]
 #![feature(test)]
 #![deny(clippy::all)]
 
