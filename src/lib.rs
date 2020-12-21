@@ -296,20 +296,43 @@ pub const RUSTC_VERSION: &str = env!("RUSTC_VERSION");
 pub const ENV_JOINED_CHANNELS: &str = "BRS_JOINED_CHANNELS";
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "actix", derive(actix::Message))]
+#[cfg_attr(feature = "actix", rtype(result = "()"))]
+pub enum TwitchMessage {
+    Irc(irc_rust::Message)
+}
+
+impl Display for TwitchMessage {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            TwitchMessage::Irc(msg) => write!(f, "Irc {}", msg),
+        }
+    }
+}
+
+impl From<irc_rust::Message> for TwitchMessage {
+    fn from(irc: irc_rust::Message) -> Self {
+        TwitchMessage::Irc(irc)
+    }
+}
+
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "actix", derive(actix::Message))]
+#[cfg_attr(feature = "actix", rtype(result = "()"))]
 pub enum Message {
-    Irc(irc_rust::Message),
+    Twitch(TwitchMessage),
 }
 
 impl Display for Message {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Message::Irc(msg) => write!(f, "{}", msg),
+            Message::Twitch(msg) => write!(f, "Twitch {}", msg),
         }
     }
 }
 
 impl From<irc_rust::Message> for Message {
     fn from(irc: irc_rust::Message) -> Self {
-        Message::Irc(irc)
+        Message::Twitch(TwitchMessage::from(irc))
     }
 }

@@ -1,6 +1,6 @@
 use regex::Regex;
 
-use crate::Message;
+use crate::{Message, TwitchMessage};
 use core::fmt;
 use serde::export::Formatter;
 use std::fmt::Display;
@@ -123,13 +123,13 @@ impl AccessFilter {
     /// - [AccessFilter::Badge] and [Message::Irc] : If the Irc-Message has tags and
     pub fn handles(&self, mssg: &Message) -> bool {
         match (self, mssg) {
-            (AccessFilter::Badge(_), Message::Irc(mssg)) => mssg
+            (AccessFilter::Badge(_), Message::Twitch(TwitchMessage::Irc(mssg))) => mssg
                 .tags()
                 .ok()
                 .unwrap_or(None)
                 .map(|tags| tags.get("badges").is_some())
                 .unwrap_or(false),
-            (AccessFilter::Trailing(_), Message::Irc(mssg)) => {
+            (AccessFilter::Trailing(_), Message::Twitch(TwitchMessage::Irc(mssg))) => {
                 mssg.params().and_then(|params| params.trailing()).is_some()
             }
             (AccessFilter::All(filters), mssg) => filters.iter().all(|filter| filter.handles(mssg)),
@@ -139,7 +139,7 @@ impl AccessFilter {
 
     pub fn matches(&self, mssg: &Message) -> bool {
         match (self, mssg) {
-            (AccessFilter::Badge(regex), Message::Irc(mssg)) => {
+            (AccessFilter::Badge(regex), Message::Twitch(TwitchMessage::Irc(mssg))) => {
                 let tags = mssg.tags();
                 if tags.is_err() {
                     error!(
@@ -159,7 +159,7 @@ impl AccessFilter {
                     })
                     .unwrap_or(false)
             }
-            (AccessFilter::Trailing(regex), Message::Irc(mssg)) => mssg
+            (AccessFilter::Trailing(regex), Message::Twitch(TwitchMessage::Irc(mssg))) => mssg
                 .params()
                 .and_then(|params| params.trailing())
                 .map(|trailing| {
