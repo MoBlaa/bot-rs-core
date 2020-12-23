@@ -1,4 +1,4 @@
-#![feature(proc_macro_hygiene, decl_macro, auto_traits, negative_impls)]
+#![feature(proc_macro_hygiene, decl_macro, auto_traits, negative_impls, associated_type_defaults)]
 #![feature(test)]
 #![deny(clippy::all)]
 
@@ -280,6 +280,8 @@ pub mod twitch_api;
 pub mod twitch_extensions;
 #[cfg(feature = "twitch-api")]
 mod utils;
+#[cfg(feature = "default")]
+pub mod context;
 
 #[cfg(feature = "twitch-extensions")]
 pub use twitch_extensions::irc::*;
