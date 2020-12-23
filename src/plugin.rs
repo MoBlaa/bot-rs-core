@@ -8,6 +8,7 @@ use libloading::Library;
 
 use crate::Message;
 use std::error::Error;
+use crate::context::Ctx;
 
 /// Contains information about a plugin to identify the supported commands, author information, etc.
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize, Deserialize)]
@@ -39,28 +40,7 @@ impl Display for PluginInfo {
 /// Handles single command invocations returning their result.
 #[async_trait]
 pub trait Plugin: Send + Sync {
-    type Error;
-
-    async fn call(&self, message: Message) -> Result<Vec<Message>, Self::Error>;
-
-    fn info(&self) -> PluginInfo;
-}
-
-/// Allows users to create an asynchronously running stream. This allows commands
-/// to send messages to the output without the need of a command invocation.
-#[async_trait]
-pub trait StreamablePlugin: Send + Sync + Debug {
-    /// Create a new Stream sending messages into **output** and receiving messages to
-    /// the returned sender.
-    ///
-    /// Must return only if the whole stream was processed or an error occurred.
-    ///
-    /// Should only return [PluginError] if the execution of the plugin can't be continued.w
-    async fn stream(
-        &self,
-        input: UnboundedReceiver<Message>,
-        output: UnboundedSender<Vec<Message>>,
-    ) -> Result<(), PluginError>;
+    async fn call(&mut self, message: Message, ctx: Ctx);
 
     fn info(&self) -> PluginInfo;
 }
@@ -109,11 +89,11 @@ macro_rules! export_command {
 
 #[derive(Debug, Clone)]
 pub(crate) struct PluginProxy {
-    command: Arc<dyn StreamablePlugin>,
+    command: Arc<dyn Plugin>,
     _lib: Arc<Option<Library>>,
 }
 
-impl<P: StreamablePlugin + 'static> From<Arc<P>> for PluginProxy {
+impl<P: Plugin + 'static> From<Arc<P>> for PluginProxy {
     fn from(plugin: Arc<P>) -> Self {
         PluginProxy {
             command: plugin,
@@ -123,13 +103,9 @@ impl<P: StreamablePlugin + 'static> From<Arc<P>> for PluginProxy {
 }
 
 #[async_trait]
-impl StreamablePlugin for PluginProxy {
-    async fn stream(
-        &self,
-        input: UnboundedReceiver<Message>,
-        output: UnboundedSender<Vec<Message>>,
-    ) -> Result<(), PluginError> {
-        self.command.stream(input, output).await
+impl Plugin for PluginProxy {
+    async fn call(&mut self, message: Message, ctx: Ctx) {
+        self.command.call(message, ctx);
     }
 
     fn info(&self) -> PluginInfo {
@@ -151,7 +127,7 @@ impl PluginRegistrar {
         }
     }
 
-    pub fn register(&mut self, command: Arc<dyn StreamablePlugin>) {
+    pub fn register(&mut self, command: Arc<dyn Plugin>) {
         let proxy = PluginProxy {
             command: Arc::clone(&command),
             _lib: Arc::clone(&self.lib),
@@ -162,7 +138,7 @@ impl PluginRegistrar {
 
 #[cfg(test)]
 mod tests {
-    use crate::plugin::{Plugin, PluginError, PluginInfo, StreamablePlugin};
+    use crate::plugin::{Plugin, PluginError, PluginInfo};
     use crate::Message;
     use async_trait::async_trait;
     use bot_rs_core_derive::*;
@@ -171,15 +147,14 @@ mod tests {
     use tokio::runtime::Builder;
 
     use crate as bot_rs_core;
+    use crate::context::Ctx;
 
-    #[derive(Debug, StreamablePlugin)]
+    #[derive(Debug)]
     struct TestCommand;
 
     #[async_trait]
     impl Plugin for TestCommand {
-        type Error = PluginError;
-
-        async fn call(&self, _message: Message) -> Result<Vec<Message>, PluginError> {
+        async fn call(&mut self, _message: Message, context: Ctx) {
             Ok(Vec::new())
         }
 
