@@ -254,8 +254,6 @@ extern crate log;
 extern crate serde;
 #[macro_use]
 extern crate async_trait;
-#[cfg(feature = "derive")]
-extern crate bot_rs_core_derive;
 #[cfg(feature = "plugin-loader")]
 extern crate rocket;
 #[cfg(test)]

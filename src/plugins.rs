@@ -1,23 +1,18 @@
-use crate::plugin::{
-    CommandDeclaration, PluginError, PluginInfo, PluginProxy, PluginRegistrar, StreamablePlugin,
-};
+use crate::plugin::{CommandDeclaration, PluginInfo, PluginProxy, PluginRegistrar, Plugin};
 use crate::{Message, CORE_VERSION, RUSTC_VERSION};
-use async_trait::async_trait;
-use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
 use futures::future::join_all;
-use futures::sink::SinkExt;
-use futures::stream::StreamExt;
 use libloading::Library;
 use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::{fs, io};
+use crate::context::Ctx;
 
 // Contains all loaded Plugins.
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct Plugins {
     commands: Vec<PluginProxy>,
-    libraries: Vec<Arc<Option<Library>>>,
+    libraries: Vec<Arc<Library>>,
 }
 
 impl Plugins {
@@ -28,8 +23,27 @@ impl Plugins {
         }
     }
 
-    pub fn iter(&self) -> std::slice::Iter<impl StreamablePlugin> {
+    fn info(&self) -> PluginInfo {
+        PluginInfo {
+            name: "Bot-RS Core".to_string(),
+            version: CORE_VERSION.to_string(),
+            authors: env!("CARGO_PKG_AUTHORS").to_string(),
+            repo: option_env!("CARGO_PKG_REPOSITORY").map(|repo| repo.to_string()),
+            commands: vec![],
+        }
+    }
+
+    pub fn iter(&self) -> std::slice::Iter<impl Plugin> {
         self.commands.iter()
+    }
+
+    pub fn into_plugin_basic(self) -> impl Plugin {
+        ConcurrentPlugins(self)
+    }
+
+    #[cfg(feature = "tokio")]
+    pub fn into_plugin_threaded(self) -> impl Plugin {
+        MultithreadedPlugins(self)
     }
 
     pub fn load_dir(&mut self, libraries_root: PathBuf) -> io::Result<()> {
@@ -104,9 +118,9 @@ impl Plugins {
         }
         trace!("RUSTC and CORE versions match!");
 
-        let library = Arc::new(Some(library));
+        let library = Arc::new(library);
 
-        let mut registrar = Box::new(PluginRegistrar::new(Arc::clone(&library)));
+        let mut registrar = Box::new(PluginRegistrar::new(Some(Arc::clone(&library))));
 
         (decl.register)(&mut registrar);
 
@@ -119,50 +133,51 @@ impl Plugins {
     }
 }
 
-#[async_trait]
-impl StreamablePlugin for Plugins {
-    async fn stream(
-        &self,
-        mut input: UnboundedReceiver<Message>,
-        output: UnboundedSender<Vec<Message>>,
-    ) -> Result<(), PluginError> {
-        let mut channel_inputs = Vec::with_capacity(self.commands.len());
-        for cmd in self.commands.iter() {
-            let (write, read) = unbounded();
-            let cmd = cmd.clone();
-            let output = output.clone();
-            tokio::spawn(async move {
-                if let Err(e) = cmd.stream(read, output).await {
-                    error!("Error from plugin {}: {:?}", cmd.info().name, e);
-                }
-            });
-            channel_inputs.push(write);
+/// Runs the underlying plugins concurrently, not in parallel. This means it doesn't spawn any threads.
+#[derive(Debug)]
+struct ConcurrentPlugins(Plugins);
+
+#[async_trait::async_trait]
+impl Plugin for ConcurrentPlugins {
+    async fn call(&mut self, ctx: Ctx, message: Message) {
+        let mut calls = Vec::with_capacity(self.0.commands.len());
+        for cmd in self.0.commands.iter_mut() {
+            calls.push(cmd.call(ctx.clone(), message.clone()));
         }
-        while let Some(msg) = input.next().await {
-            let mut sends = Vec::with_capacity(channel_inputs.len());
-            for sender in channel_inputs.iter_mut() {
-                sends.push(sender.send(msg.clone()));
-            }
-            // Actually send to all channels/commands
-            join_all(sends).await;
-        }
-        Ok(())
+        join_all(calls).await;
     }
 
-    fn info(&self) -> PluginInfo {
-        PluginInfo {
-            name: "Bot-RS Core".to_string(),
-            version: CORE_VERSION.to_string(),
-            authors: env!("CARGO_PKG_AUTHORS").to_string(),
-            repo: option_env!("CARGO_PKG_REPOSITORY").map(|repo| repo.to_string()),
-            commands: vec![],
+    async fn info(&self) -> PluginInfo {
+        self.0.info()
+    }
+}
+
+#[derive(Debug)]
+struct MultithreadedPlugins(Plugins);
+
+#[async_trait::async_trait]
+impl Plugin for MultithreadedPlugins {
+    async fn call(&mut self, ctx: Ctx, message: Message) {
+        let mut calls = Vec::with_capacity(self.0.commands.len());
+        for cmd in self.0.commands.iter_mut() {
+            let ctx = ctx.clone();
+            let message = message.clone();
+            let mut cmd = cmd.clone();
+            calls.push(tokio::spawn(async move {
+                cmd.call(ctx, message).await;
+            }));
         }
+        join_all(calls).await;
+    }
+
+    async fn info(&self) -> PluginInfo {
+        self.0.info()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::plugin::{Plugin, PluginError, PluginInfo, PluginProxy, StreamablePlugin};
+    use crate::plugin::{Plugin, PluginError, PluginInfo, PluginProxy};
     use crate::plugins::Plugins;
     use crate::Message;
     use async_trait::async_trait;
@@ -173,15 +188,15 @@ mod tests {
     use tokio::runtime::{Builder, Runtime};
 
     use crate as bot_rs_core;
+    use crate::context::Ctx;
+    use futures::lock::Mutex;
 
     #[derive(Debug, StreamablePlugin)]
     struct TestCommand;
 
     #[async_trait]
     impl Plugin for TestCommand {
-        type Error = PluginError;
-
-        async fn call(&self, _message: Message) -> Result<Vec<Message>, PluginError> {
+        async fn call(&self, ctx: &mut Ctx, _message: Message) -> Result<Vec<Message>, PluginError> {
             Ok(Vec::new())
         }
 
@@ -199,7 +214,7 @@ mod tests {
     fn bench_plugins(b: &mut Bencher, mut runtime: Runtime, plugin_count: usize, load: usize) {
         let mut raw_plugins = Vec::with_capacity(plugin_count);
         for _ in 0..plugin_count {
-            raw_plugins.push(PluginProxy::from(Arc::new(TestCommand)));
+            raw_plugins.push(PluginProxy::from(Arc::new(Mutex::new(TestCommand))));
         }
         let plugins = Plugins {
             commands: raw_plugins,

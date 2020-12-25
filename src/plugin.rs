@@ -2,13 +2,12 @@ use core::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::sync::Arc;
 
-use async_trait::async_trait;
-use futures::channel::mpsc::{UnboundedReceiver, UnboundedSender};
 use libloading::Library;
 
 use crate::Message;
 use std::error::Error;
 use crate::context::Ctx;
+use futures::lock::Mutex;
 
 /// Contains information about a plugin to identify the supported commands, author information, etc.
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Serialize, Deserialize)]
@@ -38,11 +37,11 @@ impl Display for PluginInfo {
 }
 
 /// Handles single command invocations returning their result.
-#[async_trait]
-pub trait Plugin: Send + Sync {
-    async fn call(&mut self, message: Message, ctx: Ctx);
+#[async_trait::async_trait]
+pub trait Plugin: Debug + Send + Sync {
+    async fn call(&mut self, ctx: Ctx, message: Message);
 
-    fn info(&self) -> PluginInfo;
+    async fn info(&self) -> PluginInfo;
 }
 
 /// Wrapper for any Error a Plugin generates.
@@ -51,7 +50,8 @@ pub struct PluginError(Arc<dyn Error>);
 
 /// Marker trait for all traits which are not [PluginError].
 pub auto trait NotInvocErr {}
-impl !NotInvocErr for PluginError {}
+
+impl ! NotInvocErr for PluginError {}
 
 impl<E: 'static + Error + NotInvocErr> From<E> for PluginError {
     fn from(val: E) -> Self {
@@ -89,48 +89,48 @@ macro_rules! export_command {
 
 #[derive(Debug, Clone)]
 pub(crate) struct PluginProxy {
-    command: Arc<dyn Plugin>,
-    _lib: Arc<Option<Library>>,
+    command: Arc<Mutex<dyn Plugin>>,
+    _lib: Option<Arc<Library>>,
 }
 
-impl<P: Plugin + 'static> From<Arc<P>> for PluginProxy {
-    fn from(plugin: Arc<P>) -> Self {
+impl<P: Plugin + 'static> From<Arc<Mutex<P>>> for PluginProxy {
+    fn from(plugin: Arc<Mutex<P>>) -> Self {
         PluginProxy {
             command: plugin,
-            _lib: Arc::new(None),
+            _lib: None,
         }
     }
 }
 
-#[async_trait]
+#[async_trait::async_trait]
 impl Plugin for PluginProxy {
-    async fn call(&mut self, message: Message, ctx: Ctx) {
-        self.command.call(message, ctx);
+    async fn call(&mut self, ctx: Ctx, message: Message) {
+        self.command.lock().await.call(ctx, message).await;
     }
 
-    fn info(&self) -> PluginInfo {
-        self.command.info()
+    async fn info(&self) -> PluginInfo {
+        self.command.lock().await.info().await
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct PluginRegistrar {
     pub(crate) commands: Vec<PluginProxy>,
-    lib: Arc<Option<Library>>,
+    lib: Option<Arc<Library>>,
 }
 
 impl PluginRegistrar {
-    pub fn new(lib: Arc<Option<Library>>) -> PluginRegistrar {
+    pub fn new(lib: Option<Arc<Library>>) -> PluginRegistrar {
         PluginRegistrar {
             lib,
             commands: Vec::new(),
         }
     }
 
-    pub fn register(&mut self, command: Arc<dyn Plugin>) {
+    pub fn register(&mut self, command: Arc<Mutex<dyn Plugin>>) {
         let proxy = PluginProxy {
             command: Arc::clone(&command),
-            _lib: Arc::clone(&self.lib),
+            _lib: self.lib.clone(),
         };
         self.commands.push(proxy);
     }
@@ -152,11 +152,8 @@ mod tests {
     #[derive(Debug)]
     struct TestCommand;
 
-    #[async_trait]
     impl Plugin for TestCommand {
-        async fn call(&mut self, _message: Message, context: Ctx) {
-            Ok(Vec::new())
-        }
+        fn call(&mut self, context: Ctx, _message: Message) {}
 
         fn info(&self) -> PluginInfo {
             PluginInfo {
